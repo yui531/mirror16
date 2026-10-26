@@ -291,7 +291,10 @@ function renderOther() {
   const candidates = Object.keys(state.people).filter(id => id !== state.me && state.people[id].self);
   if (!state.db) { el.innerHTML = `<p class="note">グループのリンクを開くと、自己診断を済ませた人の一覧がここに出ます。</p>`; return; }
   if (!candidates.length) {
-    el.innerHTML = `<p class="note">まだ自己診断を済ませた人がいません。上のリンクを送って、先に相手に「自分を診断」をしてもらってください。</p>`;
+    const meDone = state.people[state.me] && state.people[state.me].self;
+    el.innerHTML = meDone
+      ? `<p class="note">このグループで自己診断を済ませたのは、まだあなただけです。ここには自分以外の人が出るので、今は誰も選べません。<br>上のリンクを友だちに送ると、開いた人はすぐに<b>あなたを診断する画面</b>になります。その人が自己診断を済ませると、ここに出てきます。</p>`
+      : `<p class="note">まだ自己診断を済ませた人がいません。先に「自分を診断」をして、上のリンクを友だちに送ってください。</p>`;
     return;
   }
   if (!candidates.includes(state.target)) state.target = null;
