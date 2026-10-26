@@ -429,8 +429,12 @@ function renderGroupBar() {
     $("#make-group").onclick = () => { location.hash = "g-" + newGroupId(); };
     return;
   }
-  const link = location.href;
-  el.innerHTML = `<div class="field"><label for="group-link">このグループのリンク（友だちに送ってください）</label>
+  // The shared link carries the sender's id so the person who opens it lands on rating them.
+  const link = location.origin + location.pathname + "#g-" + state.group + (state.me ? "-" + state.me : "");
+  const inv = state.inviter && state.inviter !== state.me && state.people[state.inviter];
+  const invName = inv && inv.nick ? esc(inv.nick) : "";
+  el.innerHTML = `${invName ? `<p class="gap"><b>${invName}</b>さんから届いたリンクです。「誰かを診断」で${invName}さんがどう見えるか答えてください。自分のことも「自分を診断」しておくと、みんなに答えてもらえます。</p>` : ""}
+    <div class="field"><label for="group-link">このグループのリンク（友だちに送ってください）</label>
     <div class="actions"><input type="text" id="group-link" readonly value="${esc(link)}"><button class="btn" id="copy-link">コピー</button><span class="status" id="copy-status"></span></div></div>`;
   $("#copy-link").onclick = async () => {
     const inp = $("#group-link");
@@ -441,8 +445,9 @@ function renderGroupBar() {
 
 (async function boot() {
   try { const v = localStorage.getItem("m16-view"); if (v) state.view = v; } catch (e) {}
-  const m = location.hash.match(/^#g-([a-z0-9]{6,32})$/);
+  const m = location.hash.match(/^#g-([a-z0-9]{6,32})(?:-([A-Za-z0-9]{6,128}))?$/);
   state.group = m ? m[1] : null;
+  state.inviter = m && m[2] ? m[2] : null;
   renderGroupBar();
   show(state.view);
   if (!state.group) { state.ready = true; render(true); return; }
@@ -463,9 +468,19 @@ function renderGroupBar() {
   onSnapshot(collection(state.db, "groups", state.group, "people"), snap => {
     const people = {};
     snap.docs.forEach(d => { people[d.id] = d.data(); });
-    const firstLoad = !Object.keys(state.people).length;
+    const firstLoad = !state.loaded;
+    state.loaded = true;
     state.people = people;
-    render(firstLoad);
+    if (firstLoad) {
+      // Opened from someone's link: go straight to rating them (or to self-diagnosis if they haven't done theirs yet).
+      const inv = state.inviter && state.inviter !== state.me ? people[state.inviter] : null;
+      if (inv && inv.self) { state.target = state.inviter; state.view = "other"; }
+      else if (state.inviter && state.inviter !== state.me) state.view = "self";
+      renderGroupBar();
+      show(state.view);
+      return;
+    }
+    render(false);
   }, e => { console.error(e); state.db = null; render(true); });
 })();
 window.addEventListener("hashchange", () => location.reload());
