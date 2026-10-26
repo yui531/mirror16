@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js?v=3";
 
 // Axis order, letters, labels. dir +1 = agreeing pushes toward the first letter.
@@ -254,22 +254,42 @@ function readForm(root, prefix) {
   }
   return { answers: out };
 }
+function setStatus(el, text, kind) {
+  el.textContent = text;
+  el.className = "status" + (kind ? " " + kind : "");
+  el.setAttribute("role", kind === "err" ? "alert" : "status");
+}
+// Point at the first unanswered question instead of a quiet note next to the button.
+function flagMissing(root, prefix, n, statusEl) {
+  root.querySelectorAll("li.missing").forEach(li => li.classList.remove("missing"));
+  const li = root.querySelector(`input[name="${prefix}-${n - 1}"]`).closest("li");
+  li.classList.add("missing");
+  li.addEventListener("change", () => li.classList.remove("missing"), { once: true });
+  li.scrollIntoView({ behavior: "smooth", block: "center" });
+  setStatus(statusEl, `${n}問目がまだです。赤くなっている質問に答えてから、もう一度保存してください。`, "err");
+}
 async function saveMine(mutate, statusEl, btn) {
-  if (!state.db || !state.me) { statusEl.textContent = state.group ? "保存先に接続できていません。ページを開き直してください。" : "先に上の「グループを作る」を押すか、友だちから届いたリンクを開いてください。"; return; }
-  btn.disabled = true; statusEl.textContent = "保存しています…";
+  if (!state.db || !state.me) {
+    setStatus(statusEl, !state.group ? "先に上の「グループを作る」を押すか、友だちから届いたリンクを開いてください。"
+      : state.connectError ? `保存先につながっていないので保存できません（${state.connectError}）。ページを開き直してください。`
+      : "保存先につながるのを待っています。数秒待ってからもう一度押してください。", "err");
+    return;
+  }
+  btn.disabled = true; setStatus(statusEl, "保存しています…");
   const cur = JSON.parse(JSON.stringify(state.people[state.me] || {}));
   mutate(cur);
   cur.at = Date.now();
+  const slow = setTimeout(() => setStatus(statusEl, "保存に時間がかかっています。電波のいい場所で、このまま少し待ってください。", "err"), 10000);
   try {
     await setDoc(doc(state.db, "groups", state.group, "people", state.me), cur);
-    statusEl.textContent = "保存しました。";
+    setStatus(statusEl, "保存しました。", "ok");
     return true;
   } catch (e) {
     console.error(e);
-    statusEl.textContent = e && e.code === "permission-denied"
+    setStatus(statusEl, e && e.code === "permission-denied"
       ? "保存が拒否されました。あだ名やひとことが長すぎないか確かめてください。"
-      : "保存できませんでした。通信を確かめてもう一度お試しください。";
-  } finally { btn.disabled = false; }
+      : `保存できませんでした（${(e && e.code) || "通信エラー"}）。通信を確かめてもう一度お試しください。`, "err");
+  } finally { clearTimeout(slow); btn.disabled = false; }
 }
 
 function renderSelf() {
@@ -285,8 +305,8 @@ function renderSelf() {
   nk.value = (mine && mine.nick) || "";
   $("#save-self").onclick = async () => {
     const r = readForm(el, "s"), st = $("#status-self"), nick = nk.value.trim().slice(0, 20);
-    if (!nick) { st.textContent = "あだ名を入れてください。"; nk.focus(); return; }
-    if (r.missing) { st.textContent = `${r.missing}問目がまだです。`; return; }
+    if (!nick) { setStatus(st, "いちばん上の「あなたのあだ名」を入れてください。", "err"); nk.scrollIntoView({ behavior: "smooth", block: "center" }); nk.focus(); return; }
+    if (r.missing) { flagMissing(el, "s", r.missing, st); return; }
     const ok = await saveMine(cur => { cur.nick = nick; cur.self = { answers: r.answers, at: Date.now() }; }, st, $("#save-self"));
     if (ok) { state.selected = state.me; show("result"); }
   };
@@ -325,7 +345,7 @@ function renderOther() {
   ta.addEventListener("input", upd); upd();
   $("#save-other").onclick = async () => {
     const r = readForm(el, "o"), st = $("#status-other"), t = state.target;
-    if (r.missing) { st.textContent = `${r.missing}問目がまだです。`; return; }
+    if (r.missing) { flagMissing(el, "o", r.missing, st); return; }
     const comment = ta.value.trim().slice(0, 140), nick = nk.value.trim().slice(0, 20);
     const ok = await saveMine(cur => { if (nick || !cur.self) cur.nick = nick; cur.given = Object.assign({}, cur.given, { [t]: { answers: r.answers, comment, at: Date.now() } }); }, st, $("#save-other"));
     if (!ok) return;
@@ -453,7 +473,7 @@ function renderGroupBar() {
   const link = shareLink();
   const inv = state.inviter && state.inviter !== state.me && state.people[state.inviter];
   const invName = inv && inv.nick ? esc(inv.nick) : "";
-  el.innerHTML = `${invName ? `<p class="gap"><b>${invName}</b>さんから届いたリンクです。「誰かを診断」で${invName}さんがどう見えるか答えてください。自分のことも「自分を診断」しておくと、みんなに答えてもらえます。</p>` : ""}
+  el.innerHTML = `${state.connectError ? `<p class="status err" role="alert">保存先につながりませんでした（${esc(state.connectError)}）。電波のいい場所でページを開き直してください。LINE などのアプリ内で開いている場合は、Safari や Chrome で開き直してください。</p>` : ""}${invName ?`<p class="gap"><b>${invName}</b>さんから届いたリンクです。「誰かを診断」で${invName}さんがどう見えるか答えてください。自分のことも「自分を診断」しておくと、みんなに答えてもらえます。</p>` : ""}
     <div class="field"><label for="group-link">このグループのリンク（友だちに送ってください）</label>
     <div class="actions"><input type="text" id="group-link" readonly value="${esc(link)}"><button class="btn" id="copy-link">コピー</button><span class="status" id="copy-status"></span></div></div>`;
   $("#copy-link").onclick = () => copyLink($("#group-link"), $("#copy-status"));
@@ -483,10 +503,12 @@ async function copyLink(input, statusEl) {
     const auth = getAuth(app);
     const cred = await signInAnonymously(auth);
     state.me = cred.user.uid;
-    state.db = getFirestore(app);
+    // Long-polling fallback keeps it working on networks and in-app browsers that block streaming connections.
+    state.db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
   } catch (e) {
     console.error(e);
-    state.ready = true; render(true); return;
+    state.connectError = (e && e.code) || "接続エラー";
+    state.ready = true; renderGroupBar(); render(true); return;
   }
   state.ready = true;
   onSnapshot(collection(state.db, "groups", state.group, "people"), snap => {
@@ -505,6 +527,6 @@ async function copyLink(input, statusEl) {
       return;
     }
     render(false);
-  }, e => { console.error(e); state.db = null; render(true); });
+  }, e => { console.error(e); state.db = null; state.connectError = (e && e.code) || "接続エラー"; renderGroupBar(); render(true); });
 })();
 window.addEventListener("hashchange", () => location.reload());
