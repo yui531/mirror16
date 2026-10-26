@@ -224,10 +224,16 @@ function renderResult() {
     `<button class="chip" data-pick="${esc(p)}" aria-pressed="${p === id}">${esc(nameOf(p))}</button>`).join("")}</div>` : "";
   let hint = "";
   if (id === state.me && !selfA) hint = `<p class="note">まず「自分を診断」で20問に答えてください。そのあと上のリンクを友だちに送ると、「誰かを診断」からあなたについて答えてもらえます。</p>`;
-  else if (id === state.me && !others.length) hint = `<p class="note">まだ誰もあなたについて答えていません。上のリンクを友だちに送って、「誰かを診断」であなたを選んでもらってください。</p>`;
+  else if (id === state.me && !others.length) hint = `<div class="share">
+      <p class="share-title">あなたのリンクができました</p>
+      <p class="note">このリンクを友だちに送ると、開いた人はすぐに<b>あなたを診断する画面</b>になります。答えが集まると、ここに「まわりが思うタイプ」が出ます。</p>
+      <div class="actions"><input type="text" id="share-link" readonly value="${esc(shareLink())}"><button class="btn" id="share-copy">リンクをコピー</button><span class="status" id="share-status"></span></div>
+    </div>`;
   el.innerHTML = chips + hint + (empty
     ? comparisonHTML(EXAMPLE_SELF, EXAMPLE_OTHERS, true)
     : comparisonHTML(selfA || null, others, false));
+  const sc = $("#share-copy");
+  if (sc) sc.onclick = () => copyLink($("#share-link"), $("#share-status"));
 }
 
 // --- questionnaires --------------------------------------------------
@@ -321,7 +327,19 @@ function renderOther() {
     const r = readForm(el, "o"), st = $("#status-other"), t = state.target;
     if (r.missing) { st.textContent = `${r.missing}問目がまだです。`; return; }
     const comment = ta.value.trim().slice(0, 140), nick = nk.value.trim().slice(0, 20);
-    await saveMine(cur => { if (nick || !cur.self) cur.nick = nick; cur.given = Object.assign({}, cur.given, { [t]: { answers: r.answers, comment, at: Date.now() } }); }, st, $("#save-other"));
+    const ok = await saveMine(cur => { if (nick || !cur.self) cur.nick = nick; cur.given = Object.assign({}, cur.given, { [t]: { answers: r.answers, comment, at: Date.now() } }); }, st, $("#save-other"));
+    if (!ok) return;
+    const meDone = state.people[state.me] && state.people[state.me].self;
+    const next = $("#next-other") || el.appendChild(Object.assign(document.createElement("div"), { id: "next-other", className: "share" }));
+    next.innerHTML = meDone
+      ? `<p class="share-title">${esc(nameOf(t))}さんへの回答を保存しました</p>
+         <p class="note">ほかにも答えられる人がいれば、上の名前を選んで続けて答えられます。</p>`
+      : `<p class="share-title">${esc(nameOf(t))}さんへの回答を保存しました</p>
+         <p class="note">次はあなたの番です。自分のことを診断すると、あなた専用のリンクができて、みんなにあなたを診断してもらえます。</p>
+         <div class="actions"><button class="btn" id="go-self">自分を診断する</button></div>`;
+    const go = $("#go-self");
+    if (go) go.onclick = () => { show("self"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    next.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 }
 
@@ -432,18 +450,21 @@ function renderGroupBar() {
     $("#make-group").onclick = () => { location.hash = "g-" + newGroupId(); };
     return;
   }
-  // The shared link carries the sender's id so the person who opens it lands on rating them.
-  const link = location.origin + location.pathname + "#g-" + state.group + (state.me ? "-" + state.me : "");
+  const link = shareLink();
   const inv = state.inviter && state.inviter !== state.me && state.people[state.inviter];
   const invName = inv && inv.nick ? esc(inv.nick) : "";
   el.innerHTML = `${invName ? `<p class="gap"><b>${invName}</b>さんから届いたリンクです。「誰かを診断」で${invName}さんがどう見えるか答えてください。自分のことも「自分を診断」しておくと、みんなに答えてもらえます。</p>` : ""}
     <div class="field"><label for="group-link">このグループのリンク（友だちに送ってください）</label>
     <div class="actions"><input type="text" id="group-link" readonly value="${esc(link)}"><button class="btn" id="copy-link">コピー</button><span class="status" id="copy-status"></span></div></div>`;
-  $("#copy-link").onclick = async () => {
-    const inp = $("#group-link");
-    try { await navigator.clipboard.writeText(link); $("#copy-status").textContent = "コピーしました。"; }
-    catch (e) { inp.select(); $("#copy-status").textContent = "選択したので、そのままコピーしてください。"; }
-  };
+  $("#copy-link").onclick = () => copyLink($("#group-link"), $("#copy-status"));
+}
+// The shared link carries the sender's id so the person who opens it lands on rating them.
+function shareLink() {
+  return location.origin + location.pathname + "#g-" + state.group + (state.me ? "-" + state.me : "");
+}
+async function copyLink(input, statusEl) {
+  try { await navigator.clipboard.writeText(shareLink()); statusEl.textContent = "コピーしました。"; }
+  catch (e) { input.select(); statusEl.textContent = "選択したので、そのままコピーしてください。"; }
 }
 
 (async function boot() {

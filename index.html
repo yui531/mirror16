@@ -147,7 +147,10 @@ details .all { display: flex; flex-direction: column; gap: 12px; }
 .quotes cite::before { content: "— "; }
 .raters b { font-family: var(--body); margin-right: 2px; }
 input[type="text"] { font: inherit; width: 100%; max-width: 280px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
-#group-link { flex: 1 1 240px; max-width: 100%; min-width: 0; font-family: var(--mono); font-size: 13px; }
+#group-link, #share-link { flex: 1 1 240px; max-width: 100%; min-width: 0; font-family: var(--mono); font-size: 13px; }
+.share { background: var(--self-soft); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.share-title { margin: 0; font-weight: 700; font-size: 16px; color: var(--self); }
+.share .note { margin: 0; color: var(--fg); }
 textarea { font: inherit; width: 100%; min-height: 72px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); resize: vertical; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-weight: 700; font-size: 14px; }
@@ -184,6 +187,6 @@ textarea { font: inherit; width: 100%; min-height: 72px; padding: 10px; border: 
   <section id="view-self" class="card" hidden></section>
   <section id="view-other" class="card form-others" hidden></section>
 </div>
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </body>
 </html>
