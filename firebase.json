@@ -1,28 +1,40 @@
 {
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      ".firebaserc",
-      "firestore.rules",
-      "README.md",
-      ".git",
-      ".git/**",
-      ".firebase",
-      ".firebase/**",
-      "**/.*",
-      "**/.*/**",
-      "**/node_modules/**"
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(html|js)",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      },
-      {
-        "source": "**",
-        "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "site": "mirror16",
+      "public": ".",
+      "ignore": [
+        "firebase.json",
+        ".firebaserc",
+        "firestore.rules",
+        "README.md",
+        "redirect",
+        "redirect/**",
+        ".git",
+        ".git/**",
+        ".firebase",
+        ".firebase/**",
+        "**/.*",
+        "**/.*/**",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(html|js)",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "**",
+          "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+        }
+      ]
+    },
+    {
+      "site": "tako-mbti",
+      "public": "redirect",
+      "redirects": [
+        { "source": "**", "destination": "https://mirror16.web.app/", "type": 301 }
+      ]
+    }
+  ]
 }

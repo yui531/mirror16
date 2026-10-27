@@ -317,7 +317,7 @@ function zureLine(z) {
 // so strangers can't see the group's nicknames and comments.
 function shareText(selfP, othersP, n, pub) {
   const c1 = code(selfP);
-  let s = `自分では ${c1}「${TYPES[c1.slice(0, 4)][0]}」`;
+  let s = `【ミラー16】\n自分では ${c1}「${TYPES[c1.slice(0, 4)][0]}」`;
   if (othersP) {
     const c2 = code(othersP), z = zureOf(selfP, othersP);
     s += `\nまわりからは ${c2}「${TYPES[c2.slice(0, 4)][0]}」（${n}人）`;
@@ -326,7 +326,7 @@ function shareText(selfP, othersP, n, pub) {
   } else {
     s += pub ? `\nまわりからどう見えてるか、友だちに診断してもらえるよ↓` : `\nまわりからはどう見えてる？ 診断してみて↓`;
   }
-  return s + "\n" + (pub ? location.origin + location.pathname : shareLink());
+  return s + "\n" + (pub ? location.origin + location.pathname + "\n#ミラー16" : shareLink());
 }
 function shareButtonsHTML() {
   return `<div class="actions share-btns">
@@ -384,7 +384,7 @@ function charaImage(c) {
 // 1080x1920 = Instagram story size; no names anywhere on the card.
 async function drawCard(selfP, othersP, n) {
   const DISP = '"Dela Gothic One", "Hiragino Sans", sans-serif', BODY = '"Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif';
-  await Promise.all([document.fonts.load(`64px ${DISP}`, "自分の目INFJ"), document.fonts.load(`700 30px ${BODY}`, "自分のまわり")]).catch(() => {});
+  await Promise.all([document.fonts.load(`64px ${DISP}`, "ミラー16INFJ"), document.fonts.load(`700 30px ${BODY}`, "自分のまわり")]).catch(() => {});
   const W = 1080, H = 1920, cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const x = cv.getContext("2d"), C = k => CARD[k];
@@ -393,7 +393,7 @@ async function drawCard(selfP, othersP, n) {
   rr(48, 48, W - 96, H - 96, 36, C("--surface"), C("--line"));
   // title
   x.textBaseline = "alphabetic"; x.font = `64px ${DISP}`;
-  const t1 = "自分の目", t2 = "と", t3 = "まわりの目";
+  const t1 = "ミラー", t2 = "", t3 = "16";
   let tx = 100;
   [[t1, "--self"], [t2, "--fg"], [t3, "--others"]].forEach(([t, k]) => { x.fillStyle = C(k); x.fillText(t, tx, 170); tx += x.measureText(t).width; });
   // headline: ズレ度
