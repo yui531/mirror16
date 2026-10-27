@@ -24,6 +24,10 @@
           "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
         },
         {
+          "source": "**/*.js",
+          "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+        },
+        {
           "source": "**",
           "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
         }
@@ -33,7 +37,7 @@
       "site": "tako-mbti",
       "public": "redirect",
       "redirects": [
-        { "source": "**", "destination": "https://mirror16.web.app/", "type": 301 }
+        { "regex": "^/(.*)$", "destination": "https://mirror16.web.app/:1", "type": 301 }
       ]
     }
   ]
