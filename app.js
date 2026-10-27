@@ -392,12 +392,28 @@ function shareButtonsHTML() {
       <a class="btn x" id="share-x" href="#" target="_blank" rel="noopener">Xでポスト</a>
       <button class="btn ghost" id="share-image">画像にする（インスタ用）</button>
     </div>
+    <p class="status" id="share-status" role="status"></p>
     <div id="share-image-box" class="share-image" hidden></div>`;
 }
 function bindShare(selfP, othersP, n) {
   const a = $("#share-line");
   if (!a) return;
-  a.href = "https://line.me/R/share?text=" + encodeURIComponent(shareText(selfP, othersP, n));
+  // line.me/R/share often does nothing (PCs, some in-app browsers), so phones get the share
+  // sheet (LINE is listed there) and everything else gets the message copied for pasting.
+  const lineText = shareText(selfP, othersP, n);
+  a.href = "https://line.me/R/share?text=" + encodeURIComponent(lineText);
+  a.onclick = async e => {
+    e.preventDefault();
+    const st = $("#share-status");
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      try { await navigator.share({ text: lineText }); return; }
+      catch (err) { if (err.name === "AbortError") return; }
+      location.href = a.href;
+      return;
+    }
+    try { await navigator.clipboard.writeText(lineText); st.textContent = "送る文をコピーしました。LINEのトークに貼り付けて送ってください。"; }
+    catch (err) { st.innerHTML = `下の文をコピーして、LINEのトークに貼り付けてください。<textarea readonly rows="7">${esc(lineText)}</textarea>`; st.querySelector("textarea").select(); }
+  };
   $("#share-x").href = "https://x.com/intent/post?text=" + encodeURIComponent(shareText(selfP, othersP, n, true));
   $("#share-image").onclick = async () => {
     const box = $("#share-image-box"), btn = $("#share-image");
