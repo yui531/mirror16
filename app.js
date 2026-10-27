@@ -200,7 +200,7 @@ function deepHTML(selfA, others) {
       <div><p class="note"><b style="color:var(--self)">自分ではそう思っている</b>のに、まわりはそこまで感じていないこと</p>${mine.length ? mine.map(rowHTML).join("") : none}</div>
       <div><p class="note"><b style="color:var(--others)">まわりはそう感じている</b>のに、自分ではそう思っていないこと</p>${theirs.length ? theirs.map(rowHTML).join("") : none}</div>
     </div>
-    <details><summary>20問すべてをズレの大きい順に見る</summary><div class="all">${all.map(rowHTML).join("")}</div></details>
+    <details><summary>${all.length}問すべてをズレの大きい順に見る</summary><div class="all">${all.map(rowHTML).join("")}</div></details>
   </div>`;
 }
 function commentsHTML(others) {
@@ -278,17 +278,190 @@ function renderResult() {
   const chips = ids.length > 1 ? `<div class="chips">${ids.map(p =>
     `<button class="chip" data-pick="${esc(p)}" aria-pressed="${p === id}">${esc(nameOf(p))}</button>`).join("")}</div>` : "";
   let hint = "";
-  if (id === state.me && !selfA) hint = `<p class="note">まず「自分を診断」で20問に答えてください。そのあと上のリンクを友だちに送ると、「誰かを診断」からあなたについて答えてもらえます。</p>`;
-  else if (id === state.me && !others.length) hint = `<div class="share">
+  const mineWithSelf = id === state.me && selfA;
+  if (id === state.me && !selfA) hint = `<p class="note">まず「自分を診断」で${QS.length}問に答えてください。そのあと上のリンクを友だちに送ると、「誰かを診断」からあなたについて答えてもらえます。</p>`;
+  else if (mineWithSelf && !others.length) hint = `<div class="share">
       <p class="share-title">あなたのリンクができました</p>
       <p class="note">このリンクを友だちに送ると、開いた人はすぐに<b>あなたを診断する画面</b>になります。答えが集まると、ここに「まわりが思うタイプ」が出ます。</p>
       <div class="actions"><input type="text" id="share-link" readonly value="${esc(shareLink())}"><button class="btn" id="share-copy">リンクをコピー</button><span class="status" id="share-status"></span></div>
+      ${shareButtonsHTML()}
+    </div>`;
+  else if (mineWithSelf) hint = `<div class="share">
+      <p class="share-title">結果をシェアする</p>
+      <p class="note">あなたを診断するリンクも一緒に送られるので、受け取った人もそのまま答えられます。</p>
+      ${shareButtonsHTML()}
     </div>`;
   el.innerHTML = chips + hint + (empty
     ? comparisonHTML(EXAMPLE_SELF, EXAMPLE_OTHERS, true)
     : comparisonHTML(selfA || null, others, false));
   const sc = $("#share-copy");
   if (sc) sc.onclick = () => copyLink($("#share-link"), $("#share-status"));
+  if (mineWithSelf) bindShare(score(selfA), others.length ? average(others.map(o => o.pcts)) : null, others.length);
+}
+
+// --- sharing ---------------------------------------------------------
+function biggestGap(a, b) {
+  let i = 0;
+  AXES.forEach((_, k) => { if (Math.abs(a[k] - b[k]) > Math.abs(a[i] - b[i])) i = k; });
+  return { i, d: Math.abs(a[i] - b[i]) };
+}
+// ズレ度: average distance between your view and others' view over the five axes (0–100).
+const zureOf = (a, b) => Math.round(AXES.reduce((s, _, i) => s + Math.abs(a[i] - b[i]), 0) / AXES.length);
+function zureLine(z) {
+  return z < 8 ? "まわりにも見たままの自分が伝わってる"
+    : z < 16 ? "ちょっとだけ、見せてない顔がある"
+    : z < 25 ? "まわりが知らない自分がけっこういる"
+    : "自分とまわりで、ほぼ別人";
+}
+// pub: for public posts (X, images). Those carry only the top page, never the group link,
+// so strangers can't see the group's nicknames and comments.
+function shareText(selfP, othersP, n, pub) {
+  const c1 = code(selfP);
+  let s = `自分では ${c1}「${TYPES[c1.slice(0, 4)][0]}」`;
+  if (othersP) {
+    const c2 = code(othersP), z = zureOf(selfP, othersP);
+    s += `\nまわりからは ${c2}「${TYPES[c2.slice(0, 4)][0]}」（${n}人）`;
+    s += `\nズレ度 ${z}%：${zureLine(z)}`;
+    s += pub ? `\n\nあなたは自分とまわりでどれくらいズレてる？↓` : `\n\nわたしのこと、どう見えてる？↓`;
+  } else {
+    s += pub ? `\nまわりからどう見えてるか、友だちに診断してもらえるよ↓` : `\nまわりからはどう見えてる？ 診断してみて↓`;
+  }
+  return s + "\n" + (pub ? location.origin + location.pathname : shareLink());
+}
+function shareButtonsHTML() {
+  return `<div class="actions share-btns">
+      <a class="btn line" id="share-line" href="#" target="_blank" rel="noopener">LINEで送る</a>
+      <a class="btn x" id="share-x" href="#" target="_blank" rel="noopener">Xでポスト</a>
+      <button class="btn ghost" id="share-image">画像にする（インスタ用）</button>
+    </div>
+    <div id="share-image-box" class="share-image" hidden></div>`;
+}
+function bindShare(selfP, othersP, n) {
+  const a = $("#share-line");
+  if (!a) return;
+  a.href = "https://line.me/R/share?text=" + encodeURIComponent(shareText(selfP, othersP, n));
+  $("#share-x").href = "https://x.com/intent/post?text=" + encodeURIComponent(shareText(selfP, othersP, n, true));
+  $("#share-image").onclick = async () => {
+    const box = $("#share-image-box"), btn = $("#share-image");
+    btn.disabled = true; btn.textContent = "画像を作っています…";
+    try {
+      const blob = await drawCard(selfP, othersP, n);
+      const url = URL.createObjectURL(blob);
+      const file = new File([blob], "mirror16.png", { type: "image/png" });
+      const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+      box.hidden = false;
+      box.innerHTML = `<img src="${url}" alt="診断結果の画像">
+        <div class="actions">${canShare ? `<button class="btn" id="share-file">画像をシェア（インスタ・LINE・Xなど）</button>` : ""}
+        <a class="btn ghost" href="${url}" download="mirror16.png">画像を保存</a></div>
+        <p class="note">画像に名前は入りません。インスタのストーリーにそのまま貼れる縦長サイズです。スマホでは画像を長押ししても保存できます。</p>`;
+      const sf = $("#share-file");
+      if (sf) sf.onclick = () => navigator.share({ files: [file], text: shareText(selfP, othersP, n, true) }).catch(() => {});
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (e) {
+      console.error(e);
+      box.hidden = false; box.innerHTML = `<p class="status err">画像を作れませんでした。ページを開き直してもう一度お試しください。</p>`;
+    } finally { btn.disabled = false; btn.textContent = "結果を画像にする"; }
+  };
+}
+
+// Result card image. Fixed light palette so the picture looks the same whatever theme the sender uses.
+const CARD = {
+  "--bg": "#eef1f4", "--surface": "#ffffff", "--fg": "#1c2230", "--muted": "#5d6676", "--line": "#d5dbe3",
+  "--self": "#2346b8", "--others": "#d2386c", "--self-soft": "#dbe3fb", "--others-soft": "#f9dbe5",
+  "--nt": "#8d6bb0", "--nt-soft": "#efe7f6", "--nt-strong": "#6b4a8f", "--nf": "#3fae7f", "--nf-soft": "#e2f4ea", "--nf-strong": "#23855a",
+  "--sj": "#4a9cc1", "--sj-soft": "#e1eff6", "--sj-strong": "#2a7a9e", "--sp": "#e0a93a", "--sp-soft": "#fbf1dc", "--sp-strong": "#a8761a",
+  "--ink-char": "#2a2833", "--blush": "#ff8fa8",
+};
+function charaImage(c) {
+  const svg = charaSVG(c).replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" ')
+    .replace(/var\((--[\w-]+)\)/g, (_, k) => CARD[k] || "#000");
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img); img.onerror = rej;
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+// 1080x1920 = Instagram story size; no names anywhere on the card.
+async function drawCard(selfP, othersP, n) {
+  const DISP = '"Dela Gothic One", "Hiragino Sans", sans-serif', BODY = '"Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif';
+  await Promise.all([document.fonts.load(`64px ${DISP}`, "自分の目INFJ"), document.fonts.load(`700 30px ${BODY}`, "自分のまわり")]).catch(() => {});
+  const W = 1080, H = 1920, cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const x = cv.getContext("2d"), C = k => CARD[k];
+  const rr = (l, t, w, h, r, fill, stroke) => { x.beginPath(); x.roundRect(l, t, w, h, r); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = 2; x.stroke(); } };
+  x.fillStyle = C("--bg"); x.fillRect(0, 0, W, H);
+  rr(48, 48, W - 96, H - 96, 36, C("--surface"), C("--line"));
+  // title
+  x.textBaseline = "alphabetic"; x.font = `64px ${DISP}`;
+  const t1 = "自分の目", t2 = "と", t3 = "まわりの目";
+  let tx = 100;
+  [[t1, "--self"], [t2, "--fg"], [t3, "--others"]].forEach(([t, k]) => { x.fillStyle = C(k); x.fillText(t, tx, 170); tx += x.measureText(t).width; });
+  // headline: ズレ度
+  rr(100, 220, W - 200, 300, 28, C("--bg"));
+  x.textAlign = "center";
+  if (othersP) {
+    const z = zureOf(selfP, othersP);
+    x.font = `700 34px ${BODY}`; x.fillStyle = C("--muted"); x.fillText("自分とまわりのズレ度", W / 2, 290);
+    x.font = `150px ${DISP}`; x.fillStyle = C("--others"); x.fillText(`${z}%`, W / 2, 440);
+    x.font = `700 36px ${BODY}`; x.fillStyle = C("--fg"); x.fillText(zureLine(z), W / 2, 496);
+  } else {
+    x.font = `700 34px ${BODY}`; x.fillStyle = C("--muted"); x.fillText("自分とまわりのズレ度", W / 2, 300);
+    x.font = `96px ${DISP}`; x.fillStyle = C("--others"); x.fillText("？？%", W / 2, 420);
+    x.font = `700 34px ${BODY}`; x.fillStyle = C("--fg"); x.fillText("まわりからの回答、募集中", W / 2, 484);
+  }
+  x.textAlign = "left";
+  // type boxes
+  const box = async (l, label, p, labelKey, empty) => {
+    const bw = 430, top = 570, bh = 420;
+    if (!p) {
+      rr(l, top, bw, bh, 24, C("--others-soft"));
+      x.font = `700 28px ${BODY}`; x.fillStyle = C(labelKey); x.fillText(label, l + 30, top + 56);
+      x.font = `500 28px ${BODY}`; x.fillStyle = C("--muted"); x.fillText(empty, l + 30, top + 130);
+      return;
+    }
+    const c = code(p), g = groupOf(c).toLowerCase(), t = TYPES[c.slice(0, 4)];
+    rr(l, top, bw, bh, 24, C(`--${g}-soft`));
+    x.font = `700 28px ${BODY}`; x.fillStyle = C(labelKey); x.fillText(label, l + 30, top + 56);
+    x.font = `700 24px ${BODY}`; x.fillStyle = C(`--${g}-strong`); x.fillText(GROUPS[groupOf(c)], l + 30, top + 100);
+    x.font = `76px ${DISP}`; x.fillText(c, l + 26, top + 186);
+    x.font = `700 32px ${BODY}`; x.fillStyle = C("--fg"); x.fillText(t[0], l + 30, top + 240);
+    const img = await charaImage(c);
+    x.drawImage(img, l + bw / 2 - 80, top + 252, 160, 160);
+  };
+  await box(100, "自分が思うタイプ", selfP, "--self");
+  await box(550, othersP ? `まわりが思うタイプ（${n}人）` : "まわりが思うタイプ", othersP, "--others", "回答募集中！");
+  // axes
+  let y = 1090;
+  AXES.forEach((ax, i) => {
+    const L = 160, R = W - 160, tw = R - L, X = p => L + (100 - p) / 100 * tw;
+    x.font = `700 26px ${BODY}`; x.fillStyle = C("--fg");
+    x.textAlign = "left"; x.fillText(`${ax.la}(${ax.a})`, L, y);
+    x.textAlign = "right"; x.fillText(`${ax.lb}(${ax.b})`, R, y);
+    x.textAlign = "left";
+    const ty = y + 34;
+    x.fillStyle = C("--line"); x.fillRect(L, ty - 2, tw, 4);
+    x.fillRect(L + tw / 2 - 1, ty - 12, 2, 24);
+    if (othersP) { x.beginPath(); x.arc(X(othersP[i]), ty, 14, 0, Math.PI * 2); x.fillStyle = C("--surface"); x.fill(); x.lineWidth = 6; x.strokeStyle = C("--others"); x.stroke(); }
+    x.beginPath(); x.arc(X(selfP[i]), ty, 14, 0, Math.PI * 2); x.fillStyle = C("--self"); x.fill();
+    y += 88;
+  });
+  // legend + gap line
+  x.font = `500 24px ${BODY}`; x.fillStyle = C("--muted");
+  x.beginPath(); x.arc(172, y - 8, 10, 0, Math.PI * 2); x.fillStyle = C("--self"); x.fill();
+  x.fillStyle = C("--muted"); x.fillText("自分", 192, y);
+  if (othersP) {
+    x.beginPath(); x.arc(282, y - 8, 10, 0, Math.PI * 2); x.lineWidth = 5; x.strokeStyle = C("--others"); x.stroke();
+    x.fillText("まわり", 302, y);
+    const g = biggestGap(selfP, othersP);
+    x.font = `700 28px ${BODY}`; x.fillStyle = C("--fg");
+    x.fillText(g.d >= 10 ? `いちばんズレてたのは「${AXES[g.i].name}」` : "自分の見立てとまわりの見立て、ほぼ一致", 160, y + 56);
+  }
+  x.textAlign = "center";
+  x.font = `700 34px ${BODY}`; x.fillStyle = C("--fg");
+  x.fillText("あなたはどれくらいズレてる？", W / 2, H - 150);
+  x.font = `500 28px ${BODY}`; x.fillStyle = C("--muted");
+  x.fillText(location.host + " で診断できます", W / 2, H - 100);
+  return new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error("toBlob failed")), "image/png"));
 }
 
 // --- questionnaires --------------------------------------------------
