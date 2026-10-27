@@ -1,4 +1,33 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>ミラー16</title>
-<script>location.replace("https://mirror16.web.app/" + location.hash);</script></head>
-<body><p><a href="https://mirror16.web.app/">ミラー16 に移動しました</a></p></body></html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ミラー16</title>
+<script>
+// Moved to mirror16.web.app. If this device answered here before, pass along the id it had,
+// so the new site can fold those answers into this person's record.
+(async () => {
+  const uid = await new Promise(res => {
+    try {
+      const t = setTimeout(() => res(null), 1500);
+      const r = indexedDB.open("firebaseLocalStorageDb");
+      r.onerror = () => { clearTimeout(t); res(null); };
+      r.onsuccess = () => {
+        try {
+          const g = r.result.transaction("firebaseLocalStorage", "readonly").objectStore("firebaseLocalStorage").getAll();
+          g.onsuccess = () => { clearTimeout(t); const u = (g.result || []).map(x => x && x.value).find(v => v && v.uid); res(u ? u.uid : null); };
+          g.onerror = () => { clearTimeout(t); res(null); };
+        } catch (e) { clearTimeout(t); res(null); }
+      };
+    } catch (e) { res(null); }
+  });
+  let h = location.hash;
+  if (uid && /^[A-Za-z0-9]{6,128}$/.test(uid) && /^#g-[a-z0-9]{6,32}(-[A-Za-z0-9]{6,128})?$/.test(h)) h += "~p" + uid;
+  location.replace("https://mirror16.web.app/" + h);
+})();
+</script>
+</head>
+<body><p><a href="https://mirror16.web.app/">ミラー16 に移動しました</a></p></body>
+</html>

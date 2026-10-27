@@ -3,15 +3,17 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // groups/{group}/people/{uid}: one document per person per group.
     // Anyone signed in (anonymously) can read a group; each person writes only their own document.
+    // aliases: ids this person had on the app's earlier URLs, folded into this record.
     match /groups/{group}/people/{uid} {
       allow read: if request.auth != null;
       allow delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if request.auth != null
         && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['nick', 'self', 'given', 'at'])
+        && request.resource.data.keys().hasOnly(['nick', 'self', 'given', 'at', 'aliases'])
         && (!('nick' in request.resource.data) || (request.resource.data.nick is string && request.resource.data.nick.size() <= 20))
         && (!('self' in request.resource.data) || request.resource.data.self is map)
-        && (!('given' in request.resource.data) || (request.resource.data.given is map && request.resource.data.given.size() <= 200));
+        && (!('given' in request.resource.data) || (request.resource.data.given is map && request.resource.data.given.size() <= 200))
+        && (!('aliases' in request.resource.data) || (request.resource.data.aliases is list && request.resource.data.aliases.size() <= 10));
     }
   }
 }

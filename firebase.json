@@ -21,15 +21,30 @@
       "headers": [
         {
           "source": "**/*.@(html|js)",
-          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
         },
         {
           "source": "**/*.js",
-          "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+          "headers": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            }
+          ]
         },
         {
           "source": "**",
-          "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            }
+          ]
         }
       ]
     },
@@ -37,8 +52,32 @@
       "site": "tako-mbti",
       "public": "redirect",
       "redirects": [
-        { "regex": "^/(.*)$", "destination": "https://mirror16.web.app/:1", "type": 301 }
+        {
+          "regex": "^/(app|firebase-config).js$",
+          "destination": "https://mirror16.web.app/:1.js",
+          "type": 301
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
       ]
     }
-  ]
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
+  }
 }

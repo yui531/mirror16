@@ -204,9 +204,11 @@ const nameOf = id => id === state.me ? "あなた" : ((state.people[id] && state
 // --- results ---------------------------------------------------------
 function othersFor(id) {
   const out = [];
+  // Ratings given to any earlier record this person took over count as theirs; the newest one per rater wins.
+  const ids = [id, ...((state.people[id] && state.people[id].aliases) || [])];
   for (const [rid, doc] of Object.entries(state.people)) {
-    if (rid === id) continue;
-    const g = doc.given && doc.given[id];
+    if (ids.includes(rid)) continue;
+    const g = ids.map(k => doc.given && doc.given[k]).filter(x => x && Array.isArray(x.answers)).sort((a, b) => (b.at || 0) - (a.at || 0))[0];
     if (g && Array.isArray(g.answers)) out.push({ raw: g.answers, pcts: score(g.answers), comment: typeof g.comment === "string" ? g.comment.trim() : "", nick: typeof doc.nick === "string" ? doc.nick.trim() : "", at: g.at || 0 });
   }
   return out;
@@ -835,9 +837,12 @@ async function copyLink(input, statusEl) {
 
 (async function boot() {
   try { const v = localStorage.getItem("m16-view"); if (v) state.view = v; } catch (e) {}
-  const m = location.hash.match(/^#g-([a-z0-9]{6,32})(?:-([A-Za-z0-9]{6,128}))?$/);
+  // "~p<uid>" is added by the old sites' redirect page: the id this device had there.
+  const m = location.hash.match(/^#g-([a-z0-9]{6,32})(?:-([A-Za-z0-9]{6,128}))?(?:~p([A-Za-z0-9]{6,128}))?$/);
   state.group = m ? m[1] : null;
   state.inviter = m && m[2] ? m[2] : null;
+  state.prev = m && m[3] ? m[3] : null;
+  if (state.prev) history.replaceState(null, "", location.pathname + location.search + location.hash.replace(/~p[A-Za-z0-9]+$/, ""));
   renderGroupBar();
   show(state.view);
   if (!state.group) { state.ready = true; render(true); return; }
@@ -858,12 +863,41 @@ async function copyLink(input, statusEl) {
   }
   state.ready = true;
   onSnapshot(collection(state.db, "groups", state.group, "people"), snap => {
+    const raw = {};
+    snap.docs.forEach(d => { raw[d.id] = d.data(); });
+    // A record listed in someone's `aliases` (their answers from before a URL move) is folded into
+    // that person: it disappears from the lists, and its id now points at them.
+    const aliasOf = {};
+    for (const [id, d] of Object.entries(raw)) if (Array.isArray(d.aliases)) d.aliases.forEach(a => { if (a !== id) aliasOf[a] = id; });
     const people = {};
-    snap.docs.forEach(d => { people[d.id] = d.data(); });
+    for (const [id, d] of Object.entries(raw)) {
+      if (aliasOf[id] && id !== state.me) continue;
+      if (!Array.isArray(d.aliases)) { people[id] = d; continue; }
+      // Fill gaps from the earlier records: their self-diagnosis if this one has none, their ratings of others, their nickname.
+      const m = { ...d, given: { ...(d.given || {}) } };
+      for (const a of d.aliases) {
+        const o = raw[a];
+        if (!o) continue;
+        if (!m.self && o.self) m.self = o.self;
+        for (const [k, v] of Object.entries(o.given || {})) if (!m.given[k]) m.given[k] = v;
+        if (!m.nick && o.nick) m.nick = o.nick;
+      }
+      people[id] = m;
+    }
     const firstLoad = !state.loaded;
     state.loaded = true;
     state.people = people;
+    state.aliasOf = aliasOf;
     if (firstLoad) {
+      // Arrived from an old URL on a device that had answered there: fold that record into this one, once.
+      const mineRaw = raw[state.me] || {};
+      if (state.prev && state.prev !== state.me && raw[state.prev] && !(mineRaw.aliases || []).includes(state.prev) && !aliasOf[state.prev]) {
+        const next = { ...mineRaw, aliases: [...(mineRaw.aliases || []), state.prev].slice(-10), at: Date.now() };
+        if (!next.nick && raw[state.prev].nick) next.nick = raw[state.prev].nick;
+        setDoc(doc(state.db, "groups", state.group, "people", state.me), next).catch(e => console.error(e));
+      }
+      if (state.inviter && state.inviter === state.prev) state.inviter = null;
+      if (state.inviter && aliasOf[state.inviter]) state.inviter = aliasOf[state.inviter];
       // Opened from someone's link: go straight to rating them (or to self-diagnosis if they haven't done theirs yet).
       const inv = state.inviter && state.inviter !== state.me ? people[state.inviter] : null;
       if (inv && inv.self) { state.target = state.inviter; state.view = "other"; }
