@@ -11,7 +11,42 @@ const AXES = [
   { a: "J", b: "P", la: "計画", lb: "探索", name: "動き方" },
   { a: "A", b: "T", la: "自信", lb: "慎重", name: "気持ちの揺れ" },
 ];
+// v2: 6 items per axis. S/N items avoid "sounds responsible" wording that pulled everyone toward S,
+// and E/I and J/P items no longer overlap each other.
 const QS = [
+  [0, +1, "初対面の人にも自分から話しかける"],
+  [0, -1, "大人数で過ごしたあとは、ひとりの時間で回復したい"],
+  [0, +1, "考えがまとまる前に、口に出しながら整理する"],
+  [0, +1, "休みの日は、誰かと会うと元気が出る"],
+  [0, -1, "連絡は、電話よりメッセージのほうが気が楽"],
+  [0, -1, "大勢の場では、聞き役にまわることが多い"],
+  [1, +1, "話すときは、実際にあったできごとを例に出すことが多い"],
+  [1, -1, "ありえないことを空想している時間が好き"],
+  [1, +1, "新しいやり方より、試して確かめたやり方のほうがしっくりくる"],
+  [1, -1, "物事の裏にある意味や、つながりを考えるのが好き"],
+  [1, +1, "人の髪型や部屋の物の位置など、細かい変化によく気づく"],
+  [1, -1, "ひとつの話から、どんどん別のアイデアに話が飛ぶ"],
+  [2, +1, "判断するとき、気持ちより筋が通っているかを優先する"],
+  [2, -1, "相手が傷つきそうなら、正しい指摘でも言い方を変える"],
+  [2, +1, "議論で反論されても、個人的には気にしない"],
+  [2, -1, "相談されたら、まず共感から入る"],
+  [2, +1, "人の決め方が非効率だと、つい口を出したくなる"],
+  [2, -1, "決めるときは、関わる人がどう感じるかを一番に考える"],
+  [3, +1, "予定は前もって決めておきたい"],
+  [3, -1, "締め切り直前に一気に片付けがち"],
+  [3, +1, "机や持ち物がいつも整っている"],
+  [3, -1, "その場の思いつきで行き先を変えるのが楽しい"],
+  [3, +1, "やることリストを作って、順番に片付けるのが好き"],
+  [3, -1, "決めるのはギリギリまで待って、選択肢を残しておきたい"],
+  [4, +1, "失敗してもあまり引きずらない"],
+  [4, -1, "人からどう見られているかが気になる"],
+  [4, +1, "自分の判断に自信がある"],
+  [4, -1, "小さなミスでも何度も思い返す"],
+  [4, +1, "プレッシャーがかかっても、わりと落ち着いていられる"],
+  [4, -1, "気分の浮き沈みが大きいほうだ"],
+];
+// v1 (20 items) — kept so answers saved before the update still score correctly.
+const QS1 = [
   [0, +1, "初対面の人にも自分から話しかける"],
   [0, -1, "大人数で過ごしたあとは、ひとりの時間で回復したい"],
   [0, +1, "考えがまとまる前に、口に出しながら整理する"],
@@ -34,12 +69,24 @@ const QS = [
   [4, -1, "小さなミスでも何度も思い返す"],
 ];
 
-// answers: 20 ints 1..7 -> percent toward the first letter, per axis
+const itemsFor = answers => answers.length === QS1.length ? QS1 : QS;
+// answers: ints 1..7 -> percent toward the first letter, per axis.
+// An exact tie used to fall to E/S/T/J/A every time; now the most strongly answered item on that axis decides.
 function score(answers) {
-  const sums = AXES.map(() => 0);
-  QS.forEach(([ax, dir], i) => { sums[ax] += dir * (answers[i] - 4); });
-  return sums.map(s => Math.round(50 + (s / 12) * 50));
+  const items = itemsFor(answers), n = items.length / AXES.length;
+  const sums = AXES.map(() => 0), strongest = AXES.map(() => 0);
+  items.forEach(([ax, dir], i) => {
+    const v = dir * (answers[i] - 4);
+    sums[ax] += v;
+    if (Math.abs(v) > Math.abs(strongest[ax])) strongest[ax] = v;
+  });
+  return sums.map((s, ax) => {
+    const p = Math.round(50 + (s / (3 * n)) * 50);
+    return p === 50 && strongest[ax] ? (strongest[ax] > 0 ? 51 : 49) : p;
+  });
 }
+// Axes within this distance of 50% are shown as "ほぼ半々".
+const NEAR = 5;
 function code(pcts) {
   const l = pcts.map((p, i) => p >= 50 ? AXES[i].a : AXES[i].b);
   return l.slice(0, 4).join("") + "-" + l[4];
@@ -98,9 +145,14 @@ function charaSVG(c) {
 function typeCard(kind, label, p, emptyText) {
   if (!p) return `<div class="type ${kind}"><span class="lbl"><i></i>${label}</span><span class="code none">${emptyText}</span></div>`;
   const c = code(p), t = TYPES[c.slice(0, 4)], g = groupOf(c);
+  // Letters on an axis within NEAR of 50% are faded and listed, so a borderline result reads as one.
+  const near = AXES.map((ax, i) => Math.abs(p[i] - 50) <= NEAR ? i : -1).filter(i => i >= 0);
+  const letters = c.replace("-", "").split("");
+  const codeHTML = letters.map((l, i) => `${i === 4 ? "-" : ""}<span${near.includes(i) ? ' class="near" title="ほぼ半々"' : ""}>${l}</span>`).join("");
+  const nearNote = near.length ? `<span class="near-note">ほぼ半々：${near.map(i => `${AXES[i].a}/${AXES[i].b}（${AXES[i].a}${p[i]}%）`).join("、")}。ここは逆の文字になってもおかしくありません。</span>` : "";
   return `<div class="type ${kind}" data-g="${g}"><span class="lbl"><i></i>${label}</span>
-    <div class="head"><div><span class="grp">${GROUPS[g]}</span><span class="code">${c}</span><span class="nick">${t[0]}</span></div>${charaSVG(c)}</div>
-    <span class="desc">${t[1]}<br>-${c.slice(-1)}：${IDENT[c.slice(-1)]}</span></div>`;
+    <div class="head"><div><span class="grp">${GROUPS[g]}</span><span class="code">${codeHTML}</span><span class="nick">${t[0]}</span></div>${charaSVG(c)}</div>
+    <span class="desc">${t[1]}<br>-${c.slice(-1)}：${IDENT[c.slice(-1)]}</span>${nearNote}</div>`;
 }
 
 const state = {
@@ -124,8 +176,11 @@ function othersFor(id) {
 }
 // Per-question gap: others' average answer minus your own (both on 1..7)
 function deepHTML(selfA, others) {
-  if (!selfA || !others.length) return "";
-  const rows = QS.map((q, i) => {
+  if (!selfA) return "";
+  // Only compare answers given to the same question set as your own.
+  others = others.filter(o => o.raw.length === selfA.length);
+  if (!others.length) return "";
+  const rows = itemsFor(selfA).map((q, i) => {
     const o = others.reduce((s, x) => s + x.raw[i], 0) / others.length;
     return { text: q[2], s: selfA[i], o, d: o - selfA[i] };
   });
@@ -237,12 +292,15 @@ function renderResult() {
 }
 
 // --- questionnaires --------------------------------------------------
+const SCALE = ["まったくそう思わない", "そう思わない", "あまりそう思わない", "どちらともいえない", "ややそう思う", "そう思う", "とてもそう思う"];
 function formHTML(prefix, prefill) {
-  return `<ol class="q">${QS.map((q, i) => `<li>
+  if (prefill && prefill.length !== QS.length) prefill = null;
+  return `<div class="scale-key" aria-hidden="true"><span class="no">← 左ほど そう思わない</span><span class="yes">右ほど そう思う →</span></div>
+  <ol class="q">${QS.map((q, i) => `<li>
     <div class="qt"><small>${String(i + 1).padStart(2, "0")}</small>${esc(q[2])}</div>
-    <div class="scale"><span>そう思わない</span><div class="dots" role="radiogroup" aria-label="${esc(q[2])}">
-      ${[1,2,3,4,5,6,7].map(v => `<label><input type="radio" id="${prefix}-${i}-${v}" name="${prefix}-${i}" value="${v}"${prefill && prefill[i] === v ? " checked" : ""}><span></span></label>`).join("")}
-    </div><span>そう思う</span></div>
+    <div class="scale"><span class="no">そう<br>思わない</span><div class="dots" role="radiogroup" aria-label="${esc(q[2])}">
+      ${[1,2,3,4,5,6,7].map(v => `<label title="${SCALE[v - 1]}"><input type="radio" id="${prefix}-${i}-${v}" name="${prefix}-${i}" value="${v}" aria-label="${SCALE[v - 1]}"${prefill && prefill[i] === v ? " checked" : ""}><span></span></label>`).join("")}
+    </div><span class="yes">そう<br>思う</span></div>
   </li>`).join("")}</ol>`;
 }
 function readForm(root, prefix) {
@@ -298,7 +356,8 @@ function renderSelf() {
   el.innerHTML = `<div class="field"><label for="s-nick">あなたのあだ名</label>
       <p class="note">グループのみんなには、この名前で表示されます。</p>
       <input type="text" id="s-nick" maxlength="20" placeholder="例：むーちゃん" autocomplete="off"></div>
-    <p class="note">ふだんの自分にいちばん近いものを選んでください。7段階、全20問です。</p>
+    <p class="note">ふだんの自分にいちばん近いものを選んでください。7段階、全${QS.length}問です。</p>
+    ${mine && mine.self && mine.self.answers.length !== QS.length ? `<p class="status err">質問が${QS.length}問に増えて、判定の精度が上がりました。今の結果は前の${mine.self.answers.length}問の答えで出しています。答え直すと新しい質問で判定されます。</p>` : ""}
     ${formHTML("s", mine && mine.self && mine.self.answers)}
     <div class="actions"><button class="btn" id="save-self">保存して結果を見る</button><span class="status" id="status-self"></span></div>`;
   const nk = $("#s-nick");
