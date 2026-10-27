@@ -885,6 +885,7 @@ function renderGroupBar() {
     el.innerHTML = `<div class="hero">
       <div class="parade" aria-hidden="true">${parade}</div>
       <p class="hero-q">自分が思う自分と、<br>まわりから見える自分。<br><b>どれくらいズレてる？</b></p>
+      <p class="hero-about">自分のことを答えたあと、リンクを友だちに送ると、友だちが「あなたはこう見える」で答えてくれる16タイプ診断。自分の答えとどれくらい違うかが、ズレ度でわかります。</p>
       <ol class="steps">
         <li><span>1</span><div><b>自分のことを診断</b><small>30問・3分くらい</small></div></li>
         <li><span>2</span><div><b>できたリンクを友だちに送る</b><small>LINEでそのまま送れます</small></div></li>
