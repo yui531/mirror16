@@ -115,95 +115,70 @@ const TYPES = {
 const IDENT = { A: "自信型。気持ちが安定していて、失敗を引きずりにくい。", T: "慎重型。細かいところに気づき、もっと良くしようと考え続ける。" };
 const GROUPS = { NT: "考える派", NF: "寄りそう派", SJ: "守る派", SP: "動く派" };
 const groupOf = c => c[1] === "N" ? (c[2] === "T" ? "NT" : "NF") : (c[3] === "J" ? "SJ" : "SP");
-// One original chibi per type: outfit in the group color, a type-specific hairstyle and prop.
-// E raises the prop, I holds it close; F smiles open, T smiles small; -A sparkle, -T sweat drop.
-const LOOK = {
-  INTJ: { hair: "sleek", hc: "#2a2833", prop: "pawn" },
-  INTP: { hair: "messy", hc: "#5a3d2b", prop: "bulb", glasses: true },
-  ENTJ: { hair: "short", hc: "#2a2833", prop: "flag" },
-  ENTP: { hair: "spiky", hc: "#8a4b2a", prop: "bubble" },
-  INFJ: { hair: "long", hc: "#3b2a24", prop: "moon" },
-  INFP: { hair: "bob", hc: "#6b4423", prop: "flower" },
-  ENFJ: { hair: "pony", hc: "#3b2a24", prop: "heart" },
-  ENFP: { hair: "curly", hc: "#a0522d", prop: "star" },
-  ISTJ: { hair: "short", hc: "#3b2a24", prop: "clip", glasses: true },
-  ISFJ: { hair: "bun", hc: "#5a3d2b", prop: "tea" },
-  ESTJ: { hair: "sleek", hc: "#3b2a24", prop: "mega" },
-  ESFJ: { hair: "pony", hc: "#8a4b2a", prop: "gift" },
-  ISTP: { hair: "cap", hc: "#2a2833", prop: "wrench" },
-  ISFP: { hair: "bob", hc: "#a0522d", prop: "palette" },
-  ESTP: { hair: "spiky", hc: "#2a2833", prop: "ball", shades: true },
-  ESFP: { hair: "curly", hc: "#c0703a", prop: "mic" },
-};
-const INK = "#2a2833", SKIN = "#f7d6c1";
+// One round animal mascot per type, colored by group. E: eyes open, I: smiling eyes;
+// F: open smile, T: small smile; -A sparkle, -T sweat drop.
+const INK = "#2a2833", WHITE = "#ffffff", PINK = "#ffb3c4", BEAK = "#f0a83a";
 function starPath(r1, r2) {
   let d = "";
   for (let k = 0; k < 10; k++) { const r = k % 2 ? r2 : r1, a = -Math.PI / 2 + k * Math.PI / 5; d += (k ? "L" : "M") + (r * Math.cos(a)).toFixed(1) + " " + (r * Math.sin(a)).toFixed(1); }
   return d + "Z";
 }
-// Props are drawn around (0,0), about 20 units across.
-const PROPS = {
-  pawn: `<circle cy="-5" r="4" fill="${INK}"/><path d="M-4 -2 L4 -2 L6 7 L-6 7 Z" fill="${INK}"/><rect x="-7" y="7" width="14" height="3" rx="1" fill="${INK}"/>`,
-  bulb: `<path d="M-9 -9 l3 3 M9 -9 l-3 3 M0 -13 v4" stroke="#e0a93a" stroke-width="1.6" stroke-linecap="round"/><circle cy="-2" r="7" fill="#ffd34d" stroke="#e0a93a" stroke-width="1.4"/><rect x="-3.5" y="4.5" width="7" height="5" rx="1" fill="#8a8f99"/>`,
-  flag: `<path d="M-6 10 V-11" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M-6 -11 L10 -6 L-6 -1 Z" fill="#d2386c"/>`,
-  bubble: `<path d="M-9 -9 h18 a3 3 0 0 1 3 3 v8 a3 3 0 0 1 -3 3 h-9 l-6 5 v-5 h-3 a3 3 0 0 1 -3 -3 v-8 a3 3 0 0 1 3 -3z" fill="#fff" stroke="${INK}" stroke-width="1.5"/><path d="M-3 -6 v5 M-3 2 v.5 M3 -6 q3 0 3 2.5 q0 2 -3 2.5 v1 M3 2 v.5" stroke="${INK}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
-  moon: `<path d="M3 -10 A10 10 0 1 0 3 10 A12 12 0 0 1 3 -10 Z" fill="#ffd34d" stroke="#e0a93a" stroke-width="1"/><circle cx="8" cy="-8" r="1.3" fill="#ffd34d"/><circle cx="10" cy="-1" r="1" fill="#ffd34d"/>`,
-  flower: [0, 1, 2, 3, 4].map(k => { const a = -Math.PI / 2 + k * 2 * Math.PI / 5; return `<circle cx="${(5 * Math.cos(a)).toFixed(1)}" cy="${(5 * Math.sin(a) - 2).toFixed(1)}" r="4" fill="#ff8fa8"/>`; }).join("") + `<circle cy="-2" r="3" fill="#ffd34d"/><path d="M0 4 V11" stroke="#3d8a5a" stroke-width="2"/>`,
-  heart: `<path d="M0 9 C-13 0 -8 -11 0 -4 C8 -11 13 0 0 9Z" fill="#ff6b8a"/>`,
-  star: `<path d="${starPath(11, 4.6)}" fill="#ffd34d" stroke="#e0a93a" stroke-width="1"/>`,
-  clip: `<rect x="-7" y="-9" width="14" height="19" rx="2" fill="#c8a27a"/><rect x="-5" y="-6" width="10" height="14" fill="#fff"/><rect x="-3" y="-11" width="6" height="4" rx="1" fill="#8a8f99"/><path d="M-3 -2 h6 M-3 1.5 h6 M-3 5 h4" stroke="#8a8f99" stroke-width="1.2"/>`,
-  tea: `<path d="M-4 -7 q2 -3 0 -5 M1 -7 q2 -3 0 -5" stroke="#b0b6c0" stroke-width="1.3" fill="none"/><path d="M-8 -4 h13 v5 a6.5 6.5 0 0 1 -13 0 z" fill="#fff" stroke="${INK}" stroke-width="1.5"/><path d="M5 -2 a3.2 3.2 0 0 1 0 6.4" fill="none" stroke="${INK}" stroke-width="1.5"/>`,
-  mega: `<path d="M-7 -3 L6 -10 L6 10 L-7 3 Z" fill="#e05a3a"/><rect x="-11" y="-3.5" width="5" height="7" rx="1.2" fill="${INK}"/><path d="M9 -5 l3 -2 M10 0 h4 M9 5 l3 2" stroke="${INK}" stroke-width="1.4" stroke-linecap="round"/>`,
-  gift: `<rect x="-8" y="-3" width="16" height="12" fill="#ff8fa8"/><rect x="-9" y="-7" width="18" height="5" rx="1" fill="#ff6b8a"/><rect x="-1.5" y="-7" width="3" height="16" fill="#ffd34d"/><path d="M0 -7 q-7 -6 -6 -1 z M0 -7 q7 -6 6 -1 z" fill="#ffd34d"/>`,
-  wrench: `<path d="M-7 9 L4 -2" stroke="#8a8f99" stroke-width="4.5" stroke-linecap="round"/><circle cx="5" cy="-4" r="5.5" fill="#8a8f99"/><circle cx="7.5" cy="-6.5" r="2.6" fill="#5d6676"/>`,
-  palette: `<path d="M0 -10 C11 -10 12 0 6 2 C2 4 6 10 0 10 C-9 10 -11 3 -11 0 C-11 -7 -7 -10 0 -10Z" fill="#f3e2c7" stroke="#c8a27a" stroke-width="1"/><circle cx="-5" cy="-3" r="2" fill="#e05a3a"/><circle cx="0" cy="-5.5" r="2" fill="#4a9cc1"/><circle cx="4.5" cy="-3" r="2" fill="#3fae7f"/><circle cx="-5" cy="3" r="2" fill="#ffd34d"/>`,
-  ball: `<circle r="9" fill="#f08a3c"/><path d="M-9 0 h18 M0 -9 v18 M-6.4 -6.4 q4 6.4 0 12.8 M6.4 -6.4 q-4 6.4 0 12.8" stroke="${INK}" stroke-width="1.1" fill="none"/>`,
-  mic: `<path d="M7 -12 v8 a2 2 0 1 1 -1.5 -2 v-6 l4 1" stroke="${INK}" stroke-width="1.3" fill="${INK}"/><rect x="-2.2" y="-1" width="4.4" height="12" rx="1.6" fill="${INK}"/><circle cy="-5" r="5.5" fill="#8a8f99"/><path d="M-4 -7 h8 M-4.6 -4 h9.2" stroke="#5d6676" stroke-width=".8"/>`,
-};
-const HAIR = {
-  short: { front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z" },
-  sleek: { front: "M31 42 Q29 16 52 17 Q71 19 69 42 Q63 26 43 29 Q35 32 31 42Z" },
-  messy: { front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z M34 25 L37 13 L42 20 L46 10 L50 18 L55 10 L58 19 L63 13 L66 26 Z" },
-  spiky: { front: "M30 40 L33 21 L39 27 L43 12 L50 24 L56 11 L61 26 L67 19 L70 40 Q62 28 50 28 Q38 28 30 40Z" },
-  long: { back: "M29 64 Q24 15 50 15 Q76 15 71 64 Z", front: "M31 38 Q31 19 50 18 Q69 19 69 38 Q60 29 50 30 Q40 29 31 38Z" },
-  bob: { back: "M28 53 Q25 15 50 15 Q75 15 72 53 Q61 57 50 57 Q39 57 28 53Z", front: "M31 37 Q31 19 50 18 Q69 19 69 37 Q60 29 50 30 Q40 29 31 37Z" },
-  pony: { back: "M64 26 Q86 28 79 58 Q75 45 66 41Z", front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z", extra: `<circle cx="67" cy="28" r="3" fill="#d2386c"/>` },
-  bun: { back: "M42 15 a8 8 0 1 1 16 0 a8 8 0 1 1 -16 0Z", front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z" },
-  curly: { front: [[33, 35], [35, 25], [43, 18], [52, 16], [61, 19], [66, 27], [68, 36]].map(([x, y]) => `M${x - 7} ${y} a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0Z`).join(" ") },
-  cap: { front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z", cap: true },
+const ring = (n, r, cx, cy, rr, fill) => Array.from({ length: n }, (_, k) => { const a = k / n * Math.PI * 2; return `<circle cx="${(cx + r * Math.cos(a)).toFixed(1)}" cy="${(cy + r * Math.sin(a)).toFixed(1)}" r="${rr}" fill="${fill}"/>`; }).join("");
+// back: drawn behind the head; front: drawn on the head before the face. B = body color, D = darker shade.
+const ANIMALS = {
+  INTJ: { name: "フクロウ", back: (B, D) => `<path d="M26 40 L20 16 L42 32Z M74 40 L80 16 L58 32Z" fill="${D}"/>`,
+    front: () => `<circle cx="40" cy="56" r="11" fill="${WHITE}"/><circle cx="60" cy="56" r="11" fill="${WHITE}"/>`, beak: true },
+  INTP: { name: "ネコ", back: (B) => `<path d="M24 46 L27 17 L47 32Z M76 46 L73 17 L53 32Z" fill="${B}"/><path d="M28 40 L30 24 L41 32Z M72 40 L70 24 L59 32Z" fill="${PINK}"/>`,
+    front: () => `<path d="M30 66 h-12 M30 70 l-11 3 M70 66 h12 M70 70 l11 3" stroke="${INK}" stroke-width="1.4" stroke-linecap="round"/>`, nose: true },
+  ENTJ: { name: "ライオン", back: (B, D) => `<circle cx="50" cy="58" r="37" fill="${D}"/>${ring(14, 36, 50, 58, 7, D)}<circle cx="29" cy="33" r="7" fill="${B}"/><circle cx="71" cy="33" r="7" fill="${B}"/>`, muzzle: true, nose: true },
+  ENTP: { name: "キツネ", back: (B) => `<path d="M20 52 L22 12 L46 32Z M80 52 L78 12 L54 32Z" fill="${B}"/><path d="M25 42 L26 22 L39 32Z M75 42 L74 22 L61 32Z" fill="${WHITE}"/>`,
+    front: () => `<path d="M22 64 Q36 62 50 78 Q64 62 78 64 Q72 86 50 88 Q28 86 22 64Z" fill="${WHITE}"/>`, nose: true },
+  INFJ: { name: "シカ", back: (B, D) => `<path d="M36 32 L30 12 M32 20 L22 16 M64 32 L70 12 M68 20 L78 16" stroke="${D}" stroke-width="4" stroke-linecap="round"/><ellipse cx="21" cy="46" rx="11" ry="5.5" transform="rotate(-20 21 46)" fill="${B}"/><ellipse cx="79" cy="46" rx="11" ry="5.5" transform="rotate(20 79 46)" fill="${B}"/>`,
+    front: () => `<circle cx="36" cy="40" r="2.2" fill="${WHITE}" opacity=".8"/><circle cx="64" cy="40" r="2.2" fill="${WHITE}" opacity=".8"/><circle cx="50" cy="36" r="2" fill="${WHITE}" opacity=".8"/>`, muzzle: true, nose: true },
+  INFP: { name: "ウサギ", back: (B) => `<ellipse cx="39" cy="20" rx="8" ry="21" fill="${B}"/><ellipse cx="61" cy="20" rx="8" ry="21" fill="${B}"/><ellipse cx="39" cy="22" rx="4" ry="15" fill="${PINK}"/><ellipse cx="61" cy="22" rx="4" ry="15" fill="${PINK}"/>`, nose: true },
+  ENFJ: { name: "イヌ", back: () => "", front: (B, D) => `<ellipse cx="23" cy="56" rx="9" ry="18" transform="rotate(14 23 56)" fill="${D}"/><ellipse cx="77" cy="56" rx="9" ry="18" transform="rotate(-14 77 56)" fill="${D}"/>`, muzzle: true, nose: true, tongue: true },
+  ENFP: { name: "リス", back: (B, D) => `<path d="M68 90 Q100 86 94 52 Q90 30 74 36 Q90 52 72 72Z" fill="${D}"/><path d="M30 38 L28 22 L42 32Z M70 38 L72 22 L58 32Z" fill="${B}"/>`, muzzle: true, nose: true },
+  ISTJ: { name: "ビーバー", back: (B, D) => `<circle cx="28" cy="35" r="7" fill="${D}"/><circle cx="72" cy="35" r="7" fill="${D}"/>`, muzzle: true, nose: true, teeth: true },
+  ISFJ: { name: "ヒツジ", back: (B, D) => `${ring(12, 30, 50, 52, 10, WHITE)}<ellipse cx="17" cy="56" rx="10" ry="5" transform="rotate(20 17 56)" fill="${D}"/><ellipse cx="83" cy="56" rx="10" ry="5" transform="rotate(-20 83 56)" fill="${D}"/>`,
+    front: () => ring(7, 13, 50, 30, 7, WHITE) },
+  ESTJ: { name: "ペンギン", back: () => "", front: () => `<path d="M50 44 Q34 32 28 48 Q24 66 36 80 Q50 90 64 80 Q76 66 72 48 Q66 32 50 44Z" fill="${WHITE}"/>`, beak: true },
+  ESFJ: { name: "クマ", back: (B, D) => `<circle cx="27" cy="34" r="10" fill="${B}"/><circle cx="73" cy="34" r="10" fill="${B}"/><circle cx="27" cy="34" r="5" fill="${D}"/><circle cx="73" cy="34" r="5" fill="${D}"/>`, muzzle: true, nose: true },
+  ISTP: { name: "タヌキ", back: (B, D) => `<circle cx="29" cy="35" r="7" fill="${D}"/><circle cx="71" cy="35" r="7" fill="${D}"/>`,
+    front: (B, D) => `<ellipse cx="39" cy="57" rx="11" ry="8" transform="rotate(-12 39 57)" fill="${D}"/><ellipse cx="61" cy="57" rx="11" ry="8" transform="rotate(12 61 57)" fill="${D}"/>`, muzzle: true, nose: true, lightEyes: true },
+  ISFP: { name: "コアラ", back: (B) => `<circle cx="22" cy="42" r="14" fill="${B}"/><circle cx="78" cy="42" r="14" fill="${B}"/><circle cx="22" cy="42" r="8" fill="${WHITE}" opacity=".85"/><circle cx="78" cy="42" r="8" fill="${WHITE}" opacity=".85"/>`, bigNose: true },
+  ESTP: { name: "トラ", back: (B, D) => `<circle cx="29" cy="34" r="8" fill="${B}"/><circle cx="71" cy="34" r="8" fill="${B}"/><circle cx="29" cy="34" r="4" fill="${D}"/><circle cx="71" cy="34" r="4" fill="${D}"/>`,
+    front: (B, D) => `<path d="M50 30 v9 M42 31 l3 7 M58 31 l-3 7 M21 56 h8 M22 64 h7 M79 56 h-8 M78 64 h-7" stroke="${D}" stroke-width="3" stroke-linecap="round"/>`, muzzle: true, nose: true },
+  ESFP: { name: "サル", back: (B) => `<circle cx="19" cy="58" r="10" fill="${B}"/><circle cx="81" cy="58" r="10" fill="${B}"/><circle cx="19" cy="58" r="5.5" fill="#f7d6c1"/><circle cx="81" cy="58" r="5.5" fill="#f7d6c1"/>`,
+    front: () => `<path d="M50 50 Q42 40 34 46 Q26 54 32 68 Q38 84 50 84 Q62 84 68 68 Q74 54 66 46 Q58 40 50 50Z" fill="#f7d6c1"/>` },
 };
 function charaSVG(c) {
-  const type = c.slice(0, 4), L = LOOK[type], g = groupOf(c);
-  const body = `var(--${g.toLowerCase()})`, strong = `var(--${g.toLowerCase()}-strong)`;
+  const type = c.slice(0, 4), an = ANIMALS[type], g = groupOf(c).toLowerCase();
+  const B = `var(--${g})`, D = `var(--${g}-strong)`;
   const E = c[0] === "E", F = c[2] === "F", A = c.slice(-1) === "A";
-  const H = HAIR[L.hair];
-  const eyes = L.shades
-    ? `<path d="M36 36.5 h12 v4.5 q-6 4.5 -12 0 z M52 36.5 h12 v4.5 q-6 4.5 -12 0 z M48 38 h4" fill="${INK}" stroke="${INK}" stroke-width="1"/>`
-    : E ? `<circle cx="43" cy="40" r="2.8" fill="${INK}"/><circle cx="57" cy="40" r="2.8" fill="${INK}"/><circle cx="44" cy="39" r=".9" fill="#fff"/><circle cx="58" cy="39" r=".9" fill="#fff"/>`
-    : `<path d="M40 41 q3 -4 6 0 M54 41 q3 -4 6 0" stroke="${INK}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
-  const glasses = L.glasses ? `<circle cx="43" cy="40" r="5.6" fill="none" stroke="${INK}" stroke-width="1.6"/><circle cx="57" cy="40" r="5.6" fill="none" stroke="${INK}" stroke-width="1.6"/><path d="M48.6 40 h2.8" stroke="${INK}" stroke-width="1.6"/>` : "";
+  const eyeC = an.lightEyes ? WHITE : INK;
+  const eyes = E
+    ? `<circle cx="40" cy="56" r="3.6" fill="${eyeC}"/><circle cx="60" cy="56" r="3.6" fill="${eyeC}"/>${an.lightEyes ? "" : `<circle cx="41.3" cy="54.7" r="1.2" fill="#fff"/><circle cx="61.3" cy="54.7" r="1.2" fill="#fff"/>`}`
+    : `<path d="M36 57 q4 -5 8 0 M56 57 q4 -5 8 0" stroke="${eyeC}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  const muzzle = an.muzzle ? `<ellipse cx="50" cy="70" rx="13" ry="10" fill="${WHITE}" opacity=".9"/>` : "";
+  const nose = an.bigNose ? `<ellipse cx="50" cy="65" rx="6.5" ry="8" fill="${INK}"/>`
+    : an.beak ? `<path d="M44 63 L56 63 L50 71Z" fill="${BEAK}"/>`
+    : an.nose ? `<ellipse cx="50" cy="65" rx="3.4" ry="2.4" fill="${INK}"/>` : "";
+  const my = an.bigNose || an.beak ? 76 : 71;
   const mouth = F
-    ? `<path d="M46 46 q4 6 8 0 z" fill="${INK}"/>`
-    : `<path d="M46.5 47 q3.5 2.6 7 0" stroke="${INK}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
-  const cap = H.cap ? `<path d="M30 31 Q30 14 50 14 Q70 14 70 31 Z" fill="${strong}"/><path d="M48 30 h25 q3 0 1 3.5 h-26 Z" fill="${strong}"/>` : "";
-  // E holds the prop up high; I keeps it close to the chest.
-  const arm = E
-    ? `<path d="M70 74 Q80 66 83 55" stroke="${body}" stroke-width="7" stroke-linecap="round" fill="none"/><g transform="translate(84 39)">${PROPS[L.prop]}</g><circle cx="83" cy="53" r="4.5" fill="${SKIN}"/>`
-    : `<path d="M70 76 Q73 88 64 89" stroke="${body}" stroke-width="7" stroke-linecap="round" fill="none"/><g transform="translate(62 79)">${PROPS[L.prop]}</g><circle cx="63" cy="89" r="4.5" fill="${SKIN}"/>`;
+    ? `<path d="M45 ${my} q5 7 10 0 z" fill="${INK}"/>${an.tongue ? `<ellipse cx="50" cy="${my + 4}" rx="2.6" ry="2" fill="#ff6b8a"/>` : ""}`
+    : `<path d="M45.5 ${my} q4.5 3.4 9 0" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  const teeth = an.teeth ? `<rect x="46.5" y="${my + 1}" width="7" height="6" rx="1" fill="${WHITE}" stroke="${INK}" stroke-width="1"/><path d="M50 ${my + 1} v6" stroke="${INK}" stroke-width="1"/>` : "";
   const mood = A
-    ? `<path d="${starPath(6, 2.4)}" transform="translate(17 20)" fill="#ffd34d"/>`
-    : `<path d="M17 14 q5 8 0 11 q-5 -3 0 -11 z" fill="#8fd0f5"/>`;
+    ? `<path d="${starPath(6.5, 2.6)}" transform="translate(85 18)" fill="#ffd34d"/>`
+    : `<path d="M85 12 q5 8 0 11 q-5 -3 0 -11 z" fill="#8fd0f5"/>`;
   return `<svg class="chara" viewBox="0 0 100 100" aria-hidden="true">
-    ${H.back ? `<path d="${H.back}" fill="${L.hc}"/>` : ""}
-    <path d="M20 100 Q21 68 50 64 Q79 68 80 100 Z" fill="${body}"/>
-    <path d="M30 76 Q24 88 28 98" stroke="${body}" stroke-width="7" stroke-linecap="round" fill="none"/>
-    <rect x="45" y="52" width="10" height="13" rx="3" fill="${SKIN}"/>
-    <path d="M43 65 L50 73 L57 65" stroke="#fff" stroke-width="2.4" fill="none" stroke-linejoin="round"/>
-    <circle cx="50" cy="38" r="19" fill="${SKIN}"/>
-    <path d="${H.front}" fill="${L.hc}"/>${H.extra || ""}${cap}
-    <ellipse cx="38" cy="46" rx="3.5" ry="2" fill="var(--blush)" opacity=".6"/><ellipse cx="62" cy="46" rx="3.5" ry="2" fill="var(--blush)" opacity=".6"/>
-    ${eyes}${glasses}${mouth}${arm}${mood}</svg>`;
+    ${an.back(B, D)}
+    <circle cx="50" cy="58" r="30" fill="${B}"/>
+    ${an.front ? an.front(B, D) : ""}${muzzle}
+    <ellipse cx="32" cy="67" rx="4.5" ry="2.6" fill="var(--blush)" opacity=".7"/><ellipse cx="68" cy="67" rx="4.5" ry="2.6" fill="var(--blush)" opacity=".7"/>
+    ${eyes}${nose}${mouth}${teeth}${mood}</svg>`;
 }
+
 function typeCard(kind, label, p, emptyText) {
   if (!p) return `<div class="type ${kind}"><span class="lbl"><i></i>${label}</span><span class="code none">${emptyText}</span></div>`;
   const c = code(p), t = TYPES[c.slice(0, 4)], g = groupOf(c);
@@ -213,7 +188,7 @@ function typeCard(kind, label, p, emptyText) {
   const codeHTML = letters.map((l, i) => `${i === 4 ? "-" : ""}<span${near.includes(i) ? ' class="near" title="ほぼ半々"' : ""}>${l}</span>`).join("");
   const nearNote = near.length ? `<span class="near-note">ほぼ半々：${near.map(i => `${AXES[i].a}/${AXES[i].b}（${AXES[i].a}${p[i]}%）`).join("、")}。ここは逆の文字になってもおかしくありません。</span>` : "";
   return `<div class="type ${kind}" data-g="${g}"><span class="lbl"><i></i>${label}</span>
-    <div class="head"><div><span class="grp">${GROUPS[g]}</span><span class="code">${codeHTML}</span><span class="nick">${t[0]}</span></div>${charaSVG(c)}</div>
+    <div class="head"><div><span class="grp">${GROUPS[g]}・${ANIMALS[c.slice(0, 4)].name}</span><span class="code">${codeHTML}</span><span class="nick">${t[0]}</span></div>${charaSVG(c)}</div>
     <span class="desc">${t[1]}<br>-${c.slice(-1)}：${IDENT[c.slice(-1)]}</span>${nearNote}</div>`;
 }
 
@@ -290,17 +265,36 @@ function comparisonHTML(selfA, others, isExample) {
     const x = p => 100 - p;
     const span = s != null && o != null
       ? `<div class="span" style="left:${Math.min(x(s), x(o))}%;width:${Math.abs(s - o)}%"></div>` : "";
+    // Each marker carries its own label under the track; when the two sit close, one combined label.
+    const pct = p => (p >= 50 ? ax.a + " " + p : ax.b + " " + (100 - p)) + "%";
+    const at = p => Math.min(90, Math.max(10, x(p)));
+    let labels = "";
+    if (s != null && o != null && Math.abs(s - o) < 30) {
+      labels = `<span class="ml both" style="left:${at((s + o) / 2)}%"><b class="s">自分 ${pct(s)}</b>・<b class="o">まわり ${pct(o)}</b></span>`;
+    } else {
+      if (s != null) labels += `<span class="ml s" style="left:${at(s)}%">自分 ${pct(s)}</span>`;
+      if (o != null) labels += `<span class="ml o" style="left:${at(o)}%">まわり ${pct(o)}</span>`;
+    }
+    const lean = p => p == null ? "" : p >= 50 ? "a" : "b";
     return `<div class="axis">
-      <div class="ends"><span>${ax.la}（${ax.a}）</span><span>${ax.lb}（${ax.b}）</span></div>
+      <div class="ends"><span class="${lean(s) === "a" ? "on" : ""}">${ax.la}<small>${ax.a}</small></span><span class="axname">${ax.name}</span><span class="${lean(s) === "b" ? "on" : ""}">${ax.lb}<small>${ax.b}</small></span></div>
       <div class="track"><div class="mid"></div>${span}
         ${o != null ? `<div class="mk others" style="left:${x(o)}%" title="まわり ${o}%"></div>` : ""}
         ${s != null ? `<div class="mk self" style="left:${x(s)}%" title="自分 ${s}%"></div>` : ""}
+        ${labels}
       </div>
-      <div class="pcts"><span>${s != null ? "自分 " + (s >= 50 ? ax.a + s : ax.b + (100 - s)) + "%" : ""}</span><span>${o != null ? "まわり " + (o >= 50 ? ax.a + o : ax.b + (100 - o)) + "%" : ""}</span></div>
     </div>`;
   }).join("");
+  // Headline: ズレ度 as one big number with a meter (0–40 fills the bar).
+  const zure = selfP && othersP ? zureOf(selfP, othersP) : null;
+  const headline = zure != null
+    ? `<div class="zure"><span class="zl">自分とまわりのズレ度</span><span class="zv">${zure}<small>%</small></span>
+        <div class="zmeter" aria-hidden="true"><i style="width:${Math.min(100, zure / 40 * 100)}%"></i></div>
+        <span class="zt">${zureLine(zure)}</span></div>`
+    : selfP ? `<div class="zure wait"><span class="zl">自分とまわりのズレ度</span><span class="zv">？？<small>%</small></span><span class="zt">友だちが答えると、ここに出ます</span></div>` : "";
   return `
     ${isExample ? `<p class="note"><span class="badge">表示例</span> まだ回答がないので、仮のデータで見え方を示しています。</p>` : ""}
+    ${headline}
     <div class="types">
       ${typeCard("self", "自分が思うタイプ", selfP, "未回答")}
       ${typeCard("others", `まわりが思うタイプ（${othersList.length}人の平均）`, othersP, "まだ誰も答えていません")}
@@ -323,7 +317,7 @@ function renderResult() {
   const el = $("#view-result");
   if (!state.db) {
     const msg = !state.ready ? "読み込み中…"
-      : !state.group ? "グループのリンクを開くと、ここにみんなの結果が出ます。"
+      : !state.group ? "「自分を診断する」から始めると、ここに結果が出ます。下は結果のイメージです。"
       : state.setupMissing ? "保存先（Firebase）がまだ設定されていません。README の手順で firebase-config.js を埋めてください。"
       : "保存先に接続できませんでした。少し待ってからページを開き直してください。";
     el.innerHTML = `<p class="note">${msg}</p>`
@@ -341,7 +335,7 @@ function renderResult() {
     `<button class="chip" data-pick="${esc(p)}" aria-pressed="${p === id}">${esc(nameOf(p))}</button>`).join("")}</div>` : "";
   let hint = "";
   const mineWithSelf = id === state.me && selfA;
-  if (id === state.me && !selfA) hint = `<p class="note">まず「自分を診断」で${QS.length}問に答えてください。そのあと上のリンクを友だちに送ると、「誰かを診断」からあなたについて答えてもらえます。</p>`;
+  if (id === state.me && !selfA) hint = `<p class="note">まず「自分を診断」で${QS.length}問に答えてください。そのあと上のリンクを友だちに送ると、「友だちを診断」からあなたについて答えてもらえます。</p>`;
   else if (mineWithSelf && !others.length) hint = `<div class="share">
       <p class="share-title">あなたのリンクができました</p>
       <p class="note">このリンクを友だちに送ると、開いた人はすぐに<b>あなたを診断する画面</b>になります。答えが集まると、ここに「まわりが思うタイプ」が出ます。</p>
@@ -379,10 +373,10 @@ function zureLine(z) {
 // so strangers can't see the group's nicknames and comments.
 function shareText(selfP, othersP, n, pub) {
   const c1 = code(selfP);
-  let s = `【ミラー16】\n自分では ${c1}「${TYPES[c1.slice(0, 4)][0]}」`;
+  let s = `【ミラー16】\n自分では ${c1}（${ANIMALS[c1.slice(0, 4)].name}）「${TYPES[c1.slice(0, 4)][0]}」`;
   if (othersP) {
     const c2 = code(othersP), z = zureOf(selfP, othersP);
-    s += `\nまわりからは ${c2}「${TYPES[c2.slice(0, 4)][0]}」（${n}人）`;
+    s += `\nまわりからは ${c2}（${ANIMALS[c2.slice(0, 4)].name}）「${TYPES[c2.slice(0, 4)][0]}」（${n}人）`;
     s += `\nズレ度 ${z}%：${zureLine(z)}`;
     s += pub ? `\n\nあなたは自分とまわりでどれくらいズレてる？↓` : `\n\nわたしのこと、どう見えてる？↓`;
   } else {
@@ -484,7 +478,7 @@ async function drawCard(selfP, othersP, n) {
     const c = code(p), g = groupOf(c).toLowerCase(), t = TYPES[c.slice(0, 4)];
     rr(l, top, bw, bh, 24, C(`--${g}-soft`));
     x.font = `700 28px ${BODY}`; x.fillStyle = C(labelKey); x.fillText(label, l + 30, top + 56);
-    x.font = `700 24px ${BODY}`; x.fillStyle = C(`--${g}-strong`); x.fillText(GROUPS[groupOf(c)], l + 30, top + 100);
+    x.font = `700 24px ${BODY}`; x.fillStyle = C(`--${g}-strong`); x.fillText(GROUPS[groupOf(c)] + "・" + ANIMALS[c.slice(0, 4)].name, l + 30, top + 100);
     x.font = `76px ${DISP}`; x.fillText(c, l + 26, top + 186);
     x.font = `700 32px ${BODY}`; x.fillStyle = C("--fg"); x.fillText(t[0], l + 30, top + 240);
     const img = await charaImage(c);
@@ -530,13 +524,24 @@ async function drawCard(selfP, othersP, n) {
 const SCALE = ["まったくそう思わない", "そう思わない", "あまりそう思わない", "どちらともいえない", "ややそう思う", "そう思う", "とてもそう思う"];
 function formHTML(prefix, prefill) {
   if (prefill && prefill.length !== QS.length) prefill = null;
-  return `<div class="scale-key" aria-hidden="true"><span class="no">← 左ほど そう思わない</span><span class="yes">右ほど そう思う →</span></div>
+  return `<div class="scale-key"><span class="no" aria-hidden="true">← そう思わない</span><span class="prog"><b class="prog-n">0</b> / ${QS.length}</span><span class="yes" aria-hidden="true">そう思う →</span><i class="prog-bar" style="width:0"></i></div>
   <ol class="q">${QS.map((q, i) => `<li>
     <div class="qt"><small>${String(i + 1).padStart(2, "0")}</small>${esc(q[2])}</div>
     <div class="scale"><span class="no">そう<br>思わない</span><div class="dots" role="radiogroup" aria-label="${esc(q[2])}">
       ${[1,2,3,4,5,6,7].map(v => `<label title="${SCALE[v - 1]}"><input type="radio" id="${prefix}-${i}-${v}" name="${prefix}-${i}" value="${v}" aria-label="${SCALE[v - 1]}"${prefill && prefill[i] === v ? " checked" : ""}><span></span></label>`).join("")}
     </div><span class="yes">そう<br>思う</span></div>
   </li>`).join("")}</ol>`;
+}
+// Answered-count in the sticky key; root.onchange (not addEventListener) so re-renders don't stack listeners.
+function bindProgress(root, prefix) {
+  const upd = () => {
+    const n = root.querySelectorAll(`ol.q input[name^="${prefix}-"]:checked`).length;
+    const num = root.querySelector(".prog-n"), bar = root.querySelector(".prog-bar");
+    if (num) num.textContent = n;
+    if (bar) bar.style.width = (n / QS.length * 100) + "%";
+  };
+  root.onchange = upd;
+  upd();
 }
 function readForm(root, prefix) {
   const out = [];
@@ -563,7 +568,7 @@ function flagMissing(root, prefix, n, statusEl) {
 }
 async function saveMine(mutate, statusEl, btn) {
   if (!state.db || !state.me) {
-    setStatus(statusEl, !state.group ? "先に上の「グループを作る」を押すか、友だちから届いたリンクを開いてください。"
+    setStatus(statusEl, !state.group ? "先に「自分を診断する」から始めてください。"
       : state.connectError ? `保存先につながっていないので保存できません（${state.connectError}）。ページを開き直してください。`
       : "保存先につながるのを待っています。数秒待ってからもう一度押してください。", "err");
     return;
@@ -589,7 +594,7 @@ function renderSelf() {
   const el = $("#view-self");
   const mine = state.people[state.me];
   el.innerHTML = `<div class="field"><label for="s-nick">あなたのあだ名</label>
-      <p class="note">グループのみんなには、この名前で表示されます。</p>
+      <p class="note">診断し合う友だちには、この名前で表示されます。</p>
       <input type="text" id="s-nick" maxlength="20" placeholder="例：むーちゃん" autocomplete="off"></div>
     <p class="note">ふだんの自分にいちばん近いものを選んでください。7段階、全${QS.length}問です。</p>
     ${mine && mine.self && mine.self.answers.length !== QS.length ? `<p class="status err">質問が${QS.length}問に増えて、判定の精度が上がりました。今の結果は前の${mine.self.answers.length}問の答えで出しています。答え直すと新しい質問で判定されます。</p>` : ""}
@@ -597,6 +602,7 @@ function renderSelf() {
     <div class="actions"><button class="btn" id="save-self">保存して結果を見る</button><span class="status" id="status-self"></span></div>`;
   const nk = $("#s-nick");
   nk.value = (mine && mine.nick) || "";
+  bindProgress(el, "s");
   $("#save-self").onclick = async () => {
     const r = readForm(el, "s"), st = $("#status-self"), nick = nk.value.trim().slice(0, 20);
     if (!nick) { setStatus(st, "いちばん上の「あなたのあだ名」を入れてください。", "err"); nk.scrollIntoView({ behavior: "smooth", block: "center" }); nk.focus(); return; }
@@ -609,11 +615,11 @@ function renderSelf() {
 function renderOther() {
   const el = $("#view-other");
   const candidates = Object.keys(state.people).filter(id => id !== state.me && state.people[id].self);
-  if (!state.db) { el.innerHTML = `<p class="note">グループのリンクを開くと、自己診断を済ませた人の一覧がここに出ます。</p>`; return; }
+  if (!state.db) { el.innerHTML = `<p class="note">友だちのリンクを開くと、ここでその人を診断できます。</p>`; return; }
   if (!candidates.length) {
     const meDone = state.people[state.me] && state.people[state.me].self;
     el.innerHTML = meDone
-      ? `<p class="note">このグループで自己診断を済ませたのは、まだあなただけです。ここには自分以外の人が出るので、今は誰も選べません。<br>上のリンクを友だちに送ると、開いた人はすぐに<b>あなたを診断する画面</b>になります。その人が自己診断を済ませると、ここに出てきます。</p>`
+      ? `<p class="note">まだ、あなた以外に自己診断した友だちがいません。<br>上の「あなたの診断リンク」を友だちに送ると、開いた人はすぐに<b>あなたを診断する画面</b>になります。その人が自己診断を済ませると、ここに出てきて、その人のことも診断できます。</p>`
       : `<p class="note">まだ自己診断を済ませた人がいません。先に「自分を診断」をして、上のリンクを友だちに送ってください。</p>`;
     return;
   }
@@ -635,6 +641,7 @@ function renderOther() {
   const ta = $("#o-comment"), cnt = $("#o-count"), nk = $("#o-nick");
   ta.value = (given[state.target] && given[state.target].comment) || "";
   nk.value = (state.people[state.me] && state.people[state.me].nick) || "";
+  bindProgress(el, "o");
   const upd = () => { cnt.textContent = `${ta.value.length} / 140`; };
   ta.addEventListener("input", upd); upd();
   $("#save-other").onclick = async () => {
@@ -723,6 +730,7 @@ function pickFromMap(id) {
 
 // --- shell -----------------------------------------------------------
 function show(view) {
+  if (!state.group && view !== "result") { startNew(view); return; }
   state.view = view;
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === view));
   $("#view-result").hidden = view !== "result";
@@ -734,6 +742,7 @@ function show(view) {
 }
 // Forms re-render only on tab switch or when explicitly asked, so live snapshots don't wipe half-filled answers.
 function render(forms) {
+  if (state.group && state.loaded) renderGroupBar();
   renderResult();
   renderMap();
   if (forms || state.view !== "self") renderSelf();
@@ -756,21 +765,46 @@ function newGroupId() {
   const abc = "abcdefghijkmnpqrstuvwxyz23456789", r = crypto.getRandomValues(new Uint8Array(10));
   return Array.from(r, b => abc[b % abc.length]).join("");
 }
+// The "group" stays behind the scenes: starting a diagnosis quietly makes one, and the
+// person's own link (group + their id) is all anyone ever needs to pass around.
+function startNew(view) {
+  try { localStorage.setItem("m16-view", view || "self"); } catch (e) {}
+  location.hash = "g-" + newGroupId();
+}
 function renderGroupBar() {
   const el = $("#group-bar");
+  document.body.classList.toggle("landing", !state.group);
   if (!state.group) {
-    el.innerHTML = `<p class="note">まずグループを作って、そのリンクを友だちに送ってください。同じリンクを開いた人どうしで診断し合えます。</p>
-      <div class="actions"><button class="btn" id="make-group">グループを作る</button></div>`;
-    $("#make-group").onclick = () => { location.hash = "g-" + newGroupId(); };
+    el.innerHTML = `<div class="hero">
+      <p class="hero-q">自分が思う自分と、<br>まわりから見える自分。<br><b>どれくらいズレてる？</b></p>
+      <ol class="steps">
+        <li><span>1</span><div><b>自分のことを診断</b><small>30問・3分くらい</small></div></li>
+        <li><span>2</span><div><b>できたリンクを友だちに送る</b><small>LINEでそのまま送れます</small></div></li>
+        <li><span>3</span><div><b>友だちが答えるとズレ度がわかる</b><small>自分のタイプと、まわりから見たタイプを比べます</small></div></li>
+      </ol>
+      <div class="actions"><button class="btn big" id="start">自分を診断する</button></div>
+      <p class="note">登録もログインもいりません。</p>
+    </div>`;
+    $("#start").onclick = () => startNew("self");
     return;
   }
-  const link = shareLink();
+  const mine = state.people[state.me], meDone = mine && mine.self;
   const inv = state.inviter && state.inviter !== state.me && state.people[state.inviter];
   const invName = inv && inv.nick ? esc(inv.nick) : "";
-  el.innerHTML = `${state.connectError ? `<p class="status err" role="alert">保存先につながりませんでした（${esc(state.connectError)}）。電波のいい場所でページを開き直してください。LINE などのアプリ内で開いている場合は、Safari や Chrome で開き直してください。</p>` : ""}${invName ?`<p class="gap"><b>${invName}</b>さんから届いたリンクです。「誰かを診断」で${invName}さんがどう見えるか答えてください。自分のことも「自分を診断」しておくと、みんなに答えてもらえます。</p>` : ""}
-    <div class="field"><label for="group-link">このグループのリンク（友だちに送ってください）</label>
-    <div class="actions"><input type="text" id="group-link" readonly value="${esc(link)}"><button class="btn" id="copy-link">コピー</button><span class="status" id="copy-status"></span></div></div>`;
-  $("#copy-link").onclick = () => copyLink($("#group-link"), $("#copy-status"));
+  const err = state.connectError ? `<p class="status err" role="alert">保存先につながりませんでした（${esc(state.connectError)}）。電波のいい場所でページを開き直してください。LINE などのアプリ内で開いている場合は、Safari や Chrome で開き直してください。</p>` : "";
+  let body;
+  if (meDone) {
+    body = `<div class="field"><label for="group-link">あなたの診断リンク</label>
+      <p class="note">友だちに送ると、開いた人があなたのことを診断できます。</p>
+      <div class="actions"><input type="text" id="group-link" readonly value="${esc(shareLink())}"><button class="btn" id="copy-link">コピー</button><span class="status" id="copy-status"></span></div></div>`;
+  } else if (invName) {
+    body = `<p class="gap"><b>${invName}</b>さんから診断のお願いが届いています。下の質問に、${invName}さんがどう見えるかで答えてください。</p>`;
+  } else {
+    body = `<p class="gap">まずは「自分を診断」で、自分のことに答えてください。終わると、友だちに送るリンクができます。</p>`;
+  }
+  el.innerHTML = err + body;
+  const cl = $("#copy-link");
+  if (cl) cl.onclick = () => copyLink($("#group-link"), $("#copy-status"));
 }
 // The shared link carries the sender's id so the person who opens it lands on rating them.
 function shareLink() {

@@ -184,6 +184,38 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 .share-btns { gap: 10px; }
 .share-image { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .share-image img { width: 100%; max-width: 300px; border-radius: 12px; border: 1px solid var(--line); }
+body.landing nav { display: none; }
+.hero { display: flex; flex-direction: column; gap: 14px; }
+.hero-q { margin: 0; font-size: clamp(18px, 4.6vw, 22px); line-height: 1.6; font-weight: 700; }
+.hero-q b { color: var(--others); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; }
+.steps li > span { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--self); color: #fff; font-family: var(--display); font-size: 16px; }
+.steps li div { display: flex; flex-direction: column; line-height: 1.4; }
+.steps small { color: var(--muted); font-size: 13px; }
+.btn.big { font-size: 17px; padding: 14px 32px; border-radius: 999px; background: var(--self); color: #fff; }
+.zure { display: grid; justify-items: center; gap: 4px; padding: 18px 16px; border-radius: 12px; background: var(--others-soft); text-align: center; }
+.zure .zl { font-size: 13px; font-weight: 700; color: var(--muted); }
+.zure .zv { font-family: var(--display); font-size: clamp(48px, 14vw, 72px); line-height: 1.05; color: var(--others); }
+.zure .zv small { font-size: .45em; }
+.zure .zt { font-weight: 700; }
+.zure.wait { background: var(--bg); }
+.zure.wait .zv { color: var(--muted); }
+.zmeter { width: min(320px, 100%); height: 10px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.zmeter i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--self), var(--others)); }
+.axis .ends { align-items: baseline; }
+.axis .ends span { color: var(--muted); font-weight: 700; }
+.axis .ends span.on { color: var(--fg); }
+.axis .ends small { margin-left: 3px; font-family: var(--mono); font-size: 11px; }
+.axis .ends .axname { font-size: 11px; font-weight: 500; color: var(--muted); }
+.axis .track { margin-bottom: 20px; }
+.ml { position: absolute; top: 26px; transform: translateX(-50%); font-size: 11.5px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ml.s, .ml .s { color: var(--self); }
+.ml.o, .ml .o { color: var(--others); }
+.ml.both { color: var(--muted); }
+.scale-key { flex-wrap: wrap; overflow: hidden; }
+.scale-key .prog { font-family: var(--mono); color: var(--fg); }
+.scale-key .prog-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent, var(--self)); transition: width .2s; }
 @media (max-width: 560px) { .deep-cols { grid-template-columns: 1fr; } .types { grid-template-columns: 1fr; } }
 @media (max-width: 460px) { .scale { grid-template-columns: 2.9em 1fr 2.9em; gap: 4px; font-size: 10.5px; } .dots { gap: 2px; } .dots span { transform: scale(.88); } }
 @media (prefers-reduced-motion: no-preference) { .mk { transition: left .4s ease; } }
@@ -201,7 +233,7 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; }
   <nav role="tablist">
     <button role="tab" id="tab-result" data-view="result" aria-selected="true">結果を見る</button>
     <button role="tab" id="tab-self" data-view="self" aria-selected="false">自分を診断</button>
-    <button role="tab" id="tab-other" data-view="other" aria-selected="false">誰かを診断</button>
+    <button role="tab" id="tab-other" data-view="other" aria-selected="false">友だちを診断</button>
     <button role="tab" id="tab-map" data-view="map" aria-selected="false">みんなのマップ</button>
   </nav>
 
@@ -210,6 +242,6 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; }
   <section id="view-self" class="card" hidden></section>
   <section id="view-other" class="card form-others" hidden></section>
 </div>
-<script type="module" src="app.js?v=10"></script>
+<script type="module" src="app.js?v=12"></script>
 </body>
 </html>
