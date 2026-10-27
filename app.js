@@ -115,32 +115,94 @@ const TYPES = {
 const IDENT = { A: "自信型。気持ちが安定していて、失敗を引きずりにくい。", T: "慎重型。細かいところに気づき、もっと良くしようと考え続ける。" };
 const GROUPS = { NT: "考える派", NF: "寄りそう派", SJ: "守る派", SP: "動く派" };
 const groupOf = c => c[1] === "N" ? (c[2] === "T" ? "NT" : "NF") : (c[3] === "J" ? "SJ" : "SP");
-// A round little creature: body color by group, eyes/arms by E/I, mouth by T/F, accessory by group, A = sparkle / T = sweat drop
+// One original chibi per type: outfit in the group color, a type-specific hairstyle and prop.
+// E raises the prop, I holds it close; F smiles open, T smiles small; -A sparkle, -T sweat drop.
+const LOOK = {
+  INTJ: { hair: "sleek", hc: "#2a2833", prop: "pawn" },
+  INTP: { hair: "messy", hc: "#5a3d2b", prop: "bulb", glasses: true },
+  ENTJ: { hair: "short", hc: "#2a2833", prop: "flag" },
+  ENTP: { hair: "spiky", hc: "#8a4b2a", prop: "bubble" },
+  INFJ: { hair: "long", hc: "#3b2a24", prop: "moon" },
+  INFP: { hair: "bob", hc: "#6b4423", prop: "flower" },
+  ENFJ: { hair: "pony", hc: "#3b2a24", prop: "heart" },
+  ENFP: { hair: "curly", hc: "#a0522d", prop: "star" },
+  ISTJ: { hair: "short", hc: "#3b2a24", prop: "clip", glasses: true },
+  ISFJ: { hair: "bun", hc: "#5a3d2b", prop: "tea" },
+  ESTJ: { hair: "sleek", hc: "#3b2a24", prop: "mega" },
+  ESFJ: { hair: "pony", hc: "#8a4b2a", prop: "gift" },
+  ISTP: { hair: "cap", hc: "#2a2833", prop: "wrench" },
+  ISFP: { hair: "bob", hc: "#a0522d", prop: "palette" },
+  ESTP: { hair: "spiky", hc: "#2a2833", prop: "ball", shades: true },
+  ESFP: { hair: "curly", hc: "#c0703a", prop: "mic" },
+};
+const INK = "#2a2833", SKIN = "#f7d6c1";
+function starPath(r1, r2) {
+  let d = "";
+  for (let k = 0; k < 10; k++) { const r = k % 2 ? r2 : r1, a = -Math.PI / 2 + k * Math.PI / 5; d += (k ? "L" : "M") + (r * Math.cos(a)).toFixed(1) + " " + (r * Math.sin(a)).toFixed(1); }
+  return d + "Z";
+}
+// Props are drawn around (0,0), about 20 units across.
+const PROPS = {
+  pawn: `<circle cy="-5" r="4" fill="${INK}"/><path d="M-4 -2 L4 -2 L6 7 L-6 7 Z" fill="${INK}"/><rect x="-7" y="7" width="14" height="3" rx="1" fill="${INK}"/>`,
+  bulb: `<path d="M-9 -9 l3 3 M9 -9 l-3 3 M0 -13 v4" stroke="#e0a93a" stroke-width="1.6" stroke-linecap="round"/><circle cy="-2" r="7" fill="#ffd34d" stroke="#e0a93a" stroke-width="1.4"/><rect x="-3.5" y="4.5" width="7" height="5" rx="1" fill="#8a8f99"/>`,
+  flag: `<path d="M-6 10 V-11" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M-6 -11 L10 -6 L-6 -1 Z" fill="#d2386c"/>`,
+  bubble: `<path d="M-9 -9 h18 a3 3 0 0 1 3 3 v8 a3 3 0 0 1 -3 3 h-9 l-6 5 v-5 h-3 a3 3 0 0 1 -3 -3 v-8 a3 3 0 0 1 3 -3z" fill="#fff" stroke="${INK}" stroke-width="1.5"/><path d="M-3 -6 v5 M-3 2 v.5 M3 -6 q3 0 3 2.5 q0 2 -3 2.5 v1 M3 2 v.5" stroke="${INK}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+  moon: `<path d="M3 -10 A10 10 0 1 0 3 10 A12 12 0 0 1 3 -10 Z" fill="#ffd34d" stroke="#e0a93a" stroke-width="1"/><circle cx="8" cy="-8" r="1.3" fill="#ffd34d"/><circle cx="10" cy="-1" r="1" fill="#ffd34d"/>`,
+  flower: [0, 1, 2, 3, 4].map(k => { const a = -Math.PI / 2 + k * 2 * Math.PI / 5; return `<circle cx="${(5 * Math.cos(a)).toFixed(1)}" cy="${(5 * Math.sin(a) - 2).toFixed(1)}" r="4" fill="#ff8fa8"/>`; }).join("") + `<circle cy="-2" r="3" fill="#ffd34d"/><path d="M0 4 V11" stroke="#3d8a5a" stroke-width="2"/>`,
+  heart: `<path d="M0 9 C-13 0 -8 -11 0 -4 C8 -11 13 0 0 9Z" fill="#ff6b8a"/>`,
+  star: `<path d="${starPath(11, 4.6)}" fill="#ffd34d" stroke="#e0a93a" stroke-width="1"/>`,
+  clip: `<rect x="-7" y="-9" width="14" height="19" rx="2" fill="#c8a27a"/><rect x="-5" y="-6" width="10" height="14" fill="#fff"/><rect x="-3" y="-11" width="6" height="4" rx="1" fill="#8a8f99"/><path d="M-3 -2 h6 M-3 1.5 h6 M-3 5 h4" stroke="#8a8f99" stroke-width="1.2"/>`,
+  tea: `<path d="M-4 -7 q2 -3 0 -5 M1 -7 q2 -3 0 -5" stroke="#b0b6c0" stroke-width="1.3" fill="none"/><path d="M-8 -4 h13 v5 a6.5 6.5 0 0 1 -13 0 z" fill="#fff" stroke="${INK}" stroke-width="1.5"/><path d="M5 -2 a3.2 3.2 0 0 1 0 6.4" fill="none" stroke="${INK}" stroke-width="1.5"/>`,
+  mega: `<path d="M-7 -3 L6 -10 L6 10 L-7 3 Z" fill="#e05a3a"/><rect x="-11" y="-3.5" width="5" height="7" rx="1.2" fill="${INK}"/><path d="M9 -5 l3 -2 M10 0 h4 M9 5 l3 2" stroke="${INK}" stroke-width="1.4" stroke-linecap="round"/>`,
+  gift: `<rect x="-8" y="-3" width="16" height="12" fill="#ff8fa8"/><rect x="-9" y="-7" width="18" height="5" rx="1" fill="#ff6b8a"/><rect x="-1.5" y="-7" width="3" height="16" fill="#ffd34d"/><path d="M0 -7 q-7 -6 -6 -1 z M0 -7 q7 -6 6 -1 z" fill="#ffd34d"/>`,
+  wrench: `<path d="M-7 9 L4 -2" stroke="#8a8f99" stroke-width="4.5" stroke-linecap="round"/><circle cx="5" cy="-4" r="5.5" fill="#8a8f99"/><circle cx="7.5" cy="-6.5" r="2.6" fill="#5d6676"/>`,
+  palette: `<path d="M0 -10 C11 -10 12 0 6 2 C2 4 6 10 0 10 C-9 10 -11 3 -11 0 C-11 -7 -7 -10 0 -10Z" fill="#f3e2c7" stroke="#c8a27a" stroke-width="1"/><circle cx="-5" cy="-3" r="2" fill="#e05a3a"/><circle cx="0" cy="-5.5" r="2" fill="#4a9cc1"/><circle cx="4.5" cy="-3" r="2" fill="#3fae7f"/><circle cx="-5" cy="3" r="2" fill="#ffd34d"/>`,
+  ball: `<circle r="9" fill="#f08a3c"/><path d="M-9 0 h18 M0 -9 v18 M-6.4 -6.4 q4 6.4 0 12.8 M6.4 -6.4 q-4 6.4 0 12.8" stroke="${INK}" stroke-width="1.1" fill="none"/>`,
+  mic: `<path d="M7 -12 v8 a2 2 0 1 1 -1.5 -2 v-6 l4 1" stroke="${INK}" stroke-width="1.3" fill="${INK}"/><rect x="-2.2" y="-1" width="4.4" height="12" rx="1.6" fill="${INK}"/><circle cy="-5" r="5.5" fill="#8a8f99"/><path d="M-4 -7 h8 M-4.6 -4 h9.2" stroke="#5d6676" stroke-width=".8"/>`,
+};
+const HAIR = {
+  short: { front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z" },
+  sleek: { front: "M31 42 Q29 16 52 17 Q71 19 69 42 Q63 26 43 29 Q35 32 31 42Z" },
+  messy: { front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z M34 25 L37 13 L42 20 L46 10 L50 18 L55 10 L58 19 L63 13 L66 26 Z" },
+  spiky: { front: "M30 40 L33 21 L39 27 L43 12 L50 24 L56 11 L61 26 L67 19 L70 40 Q62 28 50 28 Q38 28 30 40Z" },
+  long: { back: "M29 64 Q24 15 50 15 Q76 15 71 64 Z", front: "M31 38 Q31 19 50 18 Q69 19 69 38 Q60 29 50 30 Q40 29 31 38Z" },
+  bob: { back: "M28 53 Q25 15 50 15 Q75 15 72 53 Q61 57 50 57 Q39 57 28 53Z", front: "M31 37 Q31 19 50 18 Q69 19 69 37 Q60 29 50 30 Q40 29 31 37Z" },
+  pony: { back: "M64 26 Q86 28 79 58 Q75 45 66 41Z", front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z", extra: `<circle cx="67" cy="28" r="3" fill="#d2386c"/>` },
+  bun: { back: "M42 15 a8 8 0 1 1 16 0 a8 8 0 1 1 -16 0Z", front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z" },
+  curly: { front: [[33, 35], [35, 25], [43, 18], [52, 16], [61, 19], [66, 27], [68, 36]].map(([x, y]) => `M${x - 7} ${y} a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0Z`).join(" ") },
+  cap: { front: "M31 40 Q30 17 50 17 Q70 17 69 40 Q64 28 50 28 Q37 28 31 40Z", cap: true },
+};
 function charaSVG(c) {
-  const g = groupOf(c), ink = "var(--ink-char)", body = `var(--${g.toLowerCase()})`;
+  const type = c.slice(0, 4), L = LOOK[type], g = groupOf(c);
+  const body = `var(--${g.toLowerCase()})`, strong = `var(--${g.toLowerCase()}-strong)`;
   const E = c[0] === "E", F = c[2] === "F", A = c.slice(-1) === "A";
-  const arms = E
-    ? `<ellipse cx="20" cy="46" rx="7" ry="11" transform="rotate(-35 20 46)" fill="${body}"/><ellipse cx="80" cy="46" rx="7" ry="11" transform="rotate(35 80 46)" fill="${body}"/>`
-    : `<ellipse cx="19" cy="70" rx="6" ry="9" transform="rotate(20 19 70)" fill="${body}"/><ellipse cx="81" cy="70" rx="6" ry="9" transform="rotate(-20 81 70)" fill="${body}"/>`;
-  const eyes = E
-    ? `<circle cx="40" cy="58" r="4" fill="${ink}"/><circle cx="60" cy="58" r="4" fill="${ink}"/><circle cx="41.5" cy="56.5" r="1.3" fill="#fff"/><circle cx="61.5" cy="56.5" r="1.3" fill="#fff"/>`
-    : `<path d="M35 59 q5 -6 10 0 M55 59 q5 -6 10 0" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  const H = HAIR[L.hair];
+  const eyes = L.shades
+    ? `<path d="M36 36.5 h12 v4.5 q-6 4.5 -12 0 z M52 36.5 h12 v4.5 q-6 4.5 -12 0 z M48 38 h4" fill="${INK}" stroke="${INK}" stroke-width="1"/>`
+    : E ? `<circle cx="43" cy="40" r="2.8" fill="${INK}"/><circle cx="57" cy="40" r="2.8" fill="${INK}"/><circle cx="44" cy="39" r=".9" fill="#fff"/><circle cx="58" cy="39" r=".9" fill="#fff"/>`
+    : `<path d="M40 41 q3 -4 6 0 M54 41 q3 -4 6 0" stroke="${INK}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  const glasses = L.glasses ? `<circle cx="43" cy="40" r="5.6" fill="none" stroke="${INK}" stroke-width="1.6"/><circle cx="57" cy="40" r="5.6" fill="none" stroke="${INK}" stroke-width="1.6"/><path d="M48.6 40 h2.8" stroke="${INK}" stroke-width="1.6"/>` : "";
   const mouth = F
-    ? `<path d="M44 66 q6 9 12 0 z" fill="${ink}"/>`
-    : `<path d="M45 67 q5 4 10 0" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
-  const acc = {
-    NT: `<circle cx="40" cy="58" r="8" fill="none" stroke="${ink}" stroke-width="2.4"/><circle cx="60" cy="58" r="8" fill="none" stroke="${ink}" stroke-width="2.4"/><path d="M48 58 h4" stroke="${ink}" stroke-width="2.4"/>`,
-    NF: `<path d="M50 32 v-10" stroke="#3d8a5a" stroke-width="3" stroke-linecap="round"/><ellipse cx="43" cy="20" rx="7" ry="4" transform="rotate(-25 43 20)" fill="#6cc98f"/><ellipse cx="57" cy="20" rx="7" ry="4" transform="rotate(25 57 20)" fill="#6cc98f"/>`,
-    SJ: `<path d="M50 82 l-9 -5 v10 z M50 82 l9 -5 v10 z" fill="${ink}"/><circle cx="50" cy="82" r="2.6" fill="${ink}"/>`,
-    SP: `<path d="M24 52 q0 -30 26 -30 q26 0 26 30" stroke="${ink}" stroke-width="3.5" fill="none"/><rect x="18" y="48" width="10" height="16" rx="4" fill="${ink}"/><rect x="72" y="48" width="10" height="16" rx="4" fill="${ink}"/>`,
-  }[g];
+    ? `<path d="M46 46 q4 6 8 0 z" fill="${INK}"/>`
+    : `<path d="M46.5 47 q3.5 2.6 7 0" stroke="${INK}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+  const cap = H.cap ? `<path d="M30 31 Q30 14 50 14 Q70 14 70 31 Z" fill="${strong}"/><path d="M48 30 h25 q3 0 1 3.5 h-26 Z" fill="${strong}"/>` : "";
+  // E holds the prop up high; I keeps it close to the chest.
+  const arm = E
+    ? `<path d="M70 74 Q80 66 83 55" stroke="${body}" stroke-width="7" stroke-linecap="round" fill="none"/><g transform="translate(84 39)">${PROPS[L.prop]}</g><circle cx="83" cy="53" r="4.5" fill="${SKIN}"/>`
+    : `<path d="M70 76 Q73 88 64 89" stroke="${body}" stroke-width="7" stroke-linecap="round" fill="none"/><g transform="translate(62 79)">${PROPS[L.prop]}</g><circle cx="63" cy="89" r="4.5" fill="${SKIN}"/>`;
   const mood = A
-    ? `<path d="M84 22 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z" fill="#ffd34d"/>`
-    : `<path d="M84 26 q5 8 0 11 q-5 -3 0 -11 z" fill="#8fd0f5"/>`;
+    ? `<path d="${starPath(6, 2.4)}" transform="translate(17 20)" fill="#ffd34d"/>`
+    : `<path d="M17 14 q5 8 0 11 q-5 -3 0 -11 z" fill="#8fd0f5"/>`;
   return `<svg class="chara" viewBox="0 0 100 100" aria-hidden="true">
-    ${arms}<ellipse cx="50" cy="60" rx="32" ry="29" fill="${body}"/>
-    <ellipse cx="31" cy="67" rx="5" ry="3" fill="var(--blush)" opacity=".55"/><ellipse cx="69" cy="67" rx="5" ry="3" fill="var(--blush)" opacity=".55"/>
-    ${eyes}${mouth}${acc}${mood}</svg>`;
+    ${H.back ? `<path d="${H.back}" fill="${L.hc}"/>` : ""}
+    <path d="M20 100 Q21 68 50 64 Q79 68 80 100 Z" fill="${body}"/>
+    <path d="M30 76 Q24 88 28 98" stroke="${body}" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <rect x="45" y="52" width="10" height="13" rx="3" fill="${SKIN}"/>
+    <path d="M43 65 L50 73 L57 65" stroke="#fff" stroke-width="2.4" fill="none" stroke-linejoin="round"/>
+    <circle cx="50" cy="38" r="19" fill="${SKIN}"/>
+    <path d="${H.front}" fill="${L.hc}"/>${H.extra || ""}${cap}
+    <ellipse cx="38" cy="46" rx="3.5" ry="2" fill="var(--blush)" opacity=".6"/><ellipse cx="62" cy="46" rx="3.5" ry="2" fill="var(--blush)" opacity=".6"/>
+    ${eyes}${glasses}${mouth}${arm}${mood}</svg>`;
 }
 function typeCard(kind, label, p, emptyText) {
   if (!p) return `<div class="type ${kind}"><span class="lbl"><i></i>${label}</span><span class="code none">${emptyText}</span></div>`;
