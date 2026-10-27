@@ -219,22 +219,88 @@ body.landing nav { display: none; }
 @media (max-width: 560px) { .deep-cols { grid-template-columns: 1fr; } .types { grid-template-columns: 1fr; } }
 @media (max-width: 460px) { .scale { grid-template-columns: 2.9em 1fr 2.9em; gap: 4px; font-size: 10.5px; } .dots { gap: 2px; } .dots span { transform: scale(.88); } }
 @media (prefers-reduced-motion: no-preference) { .mk { transition: left .4s ease; } }
+/* --- polish pass: soft cards, pill controls, friendlier questionnaire --- */
+:root { --shadow: 0 1px 2px rgba(28, 34, 48, .05), 0 8px 24px -12px rgba(28, 34, 48, .18); --radius: 18px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6); } }
+:root[data-theme="dark"] { --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6); }
+body {
+  background:
+    radial-gradient(60vmax 40vmax at 0% 0%, var(--self-soft), transparent 70%),
+    radial-gradient(50vmax 36vmax at 100% 8%, var(--others-soft), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.wrap { gap: 18px; padding-block: 20px 64px; }
+header { display: flex; flex-direction: column; gap: 2px; }
+h1 { font-size: clamp(30px, 8vw, 40px); }
+.lead { font-size: 13.5px; }
+body:not(.landing) .lead { display: none; }
+
+.card { border: 0; border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 20px; }
+
+/* tabs: one sticky segmented control, four equal cells */
+nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); }
+nav button { border: 0; margin: 0; padding: 9px 4px; border-radius: 999px; font-size: 13px; line-height: 1.3; color: var(--muted); white-space: nowrap; }
+nav button[aria-selected="true"] { background: var(--fg); color: var(--surface); }
+@media (max-width: 380px) { nav button { font-size: 12px; } }
+
+/* buttons */
+.btn { border-radius: 999px; padding: 11px 22px; background: var(--self); color: #fff; transition: transform .12s ease, filter .12s ease; }
+.btn:hover:not(:disabled) { filter: brightness(1.06); }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn.ghost { border-radius: 999px; }
+.form-others .btn:not(.ghost):not(.line):not(.x) { background: var(--others); }
+.chip { padding: 5px 14px 5px 6px; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow); border: 0; }
+.chip:not(:has(.chip-ani)) { padding-left: 14px; }
+.chip .chip-ani { width: 26px; height: 26px; }
+.chip .chip-ani svg { width: 100%; height: 100%; display: block; }
+
+/* landing */
+.parade { display: flex; justify-content: center; gap: 2px; margin: -4px 0 4px; }
+.parade svg { width: clamp(38px, 11vw, 56px); height: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .parade svg { animation: bob 2.6s ease-in-out infinite; }
+  .parade svg:nth-child(2n) { animation-delay: -.9s; }
+  .parade svg:nth-child(3n) { animation-delay: -1.7s; }
+}
+.hero { gap: 16px; }
+.hero-q { text-align: center; font-size: clamp(19px, 5vw, 24px); }
+.steps { gap: 12px; padding: 14px; border-radius: 14px; background: var(--bg); }
+.hero .actions { justify-content: center; }
+.hero .note { text-align: center; }
+.btn.big { width: min(100%, 320px); justify-content: center; font-size: 18px; padding-block: 15px; box-shadow: 0 10px 22px -10px var(--self); }
+
+/* results */
+.type { border-radius: 16px; padding: 16px; }
+.type .chara { width: 92px; height: 92px; }
+.zure { border-radius: 16px; }
+.share { border-radius: 16px; }
+
+/* questionnaire: each question is its own soft tile; answered ones calm down */
+ol.q { gap: 10px; }
+ol.q li { border: 0; padding: 14px 12px; border-radius: 14px; background: var(--bg); transition: opacity .25s ease, background .25s ease; }
+ol.q li.done { opacity: .62; }
+ol.q li.done:focus-within, ol.q li.done:hover { opacity: 1; }
+.scale-key { border: 0; box-shadow: var(--shadow); border-radius: 999px; padding: 9px 16px; top: calc(env(safe-area-inset-top, 0px) + 58px); }
+.dots span { transition: transform .12s ease, background .12s ease; }
+.dots label:hover span { transform: scale(1.08); }
+input[type="text"], textarea { border-radius: 12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1><span class="s">ミラー</span><span class="o">16</span></h1>
-    <p class="lead"><b>自分の目</b>と<b>まわりの目</b>、どれくらいズレてる？ 自分で答えた16タイプと、友だちがあなたについて答えた16タイプを比べて、ズレ度を出します。</p>
+    <p class="lead">自分の目とまわりの目のズレがわかる、16タイプ診断</p>
   </header>
 
   <section id="group-bar" class="card"></section>
 
   <nav role="tablist">
-    <button role="tab" id="tab-result" data-view="result" aria-selected="true">結果を見る</button>
+    <button role="tab" id="tab-result" data-view="result" aria-selected="true">結果</button>
     <button role="tab" id="tab-self" data-view="self" aria-selected="false">自分を診断</button>
     <button role="tab" id="tab-other" data-view="other" aria-selected="false">友だちを診断</button>
-    <button role="tab" id="tab-map" data-view="map" aria-selected="false">みんなのマップ</button>
+    <button role="tab" id="tab-map" data-view="map" aria-selected="false">マップ</button>
   </nav>
 
   <section id="view-result" class="card"></section>
@@ -242,6 +308,6 @@ body.landing nav { display: none; }
   <section id="view-self" class="card" hidden></section>
   <section id="view-other" class="card form-others" hidden></section>
 </div>
-<script type="module" src="app.js?v=12"></script>
+<script type="module" src="app.js?v=13"></script>
 </body>
 </html>

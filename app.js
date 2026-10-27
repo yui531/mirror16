@@ -332,7 +332,7 @@ function renderResult() {
   const others = othersFor(id);
   const empty = !selfA && !others.length;
   const chips = ids.length > 1 ? `<div class="chips">${ids.map(p =>
-    `<button class="chip" data-pick="${esc(p)}" aria-pressed="${p === id}">${esc(nameOf(p))}</button>`).join("")}</div>` : "";
+    `<button class="chip" data-pick="${esc(p)}" aria-pressed="${p === id}">${chipAnimal(p)}${esc(nameOf(p))}</button>`).join("")}</div>` : "";
   let hint = "";
   const mineWithSelf = id === state.me && selfA;
   if (id === state.me && !selfA) hint = `<p class="note">まず「自分を診断」で${QS.length}問に答えてください。そのあと上のリンクを友だちに送ると、「友だちを診断」からあなたについて答えてもらえます。</p>`;
@@ -532,15 +532,30 @@ function formHTML(prefix, prefill) {
     </div><span class="yes">そう<br>思う</span></div>
   </li>`).join("")}</ol>`;
 }
-// Answered-count in the sticky key; root.onchange (not addEventListener) so re-renders don't stack listeners.
+// The animal of someone's own answer, for their name chip.
+function chipAnimal(id) {
+  const s = state.people[id] && state.people[id].self;
+  return s ? `<span class="chip-ani" aria-hidden="true">${charaSVG(code(score(s.answers)))}</span>` : "";
+}
+// Answered-count in the sticky key, and after each answer glide to the next unanswered question.
+// root.onchange (not addEventListener) so re-renders don't stack listeners.
+const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function bindProgress(root, prefix) {
+  const items = [...root.querySelectorAll("ol.q li")];
   const upd = () => {
-    const n = root.querySelectorAll(`ol.q input[name^="${prefix}-"]:checked`).length;
+    let n = 0;
+    items.forEach(li => { const on = !!li.querySelector("input:checked"); li.classList.toggle("done", on); n += on; });
     const num = root.querySelector(".prog-n"), bar = root.querySelector(".prog-bar");
     if (num) num.textContent = n;
     if (bar) bar.style.width = (n / QS.length * 100) + "%";
   };
-  root.onchange = upd;
+  root.onchange = e => {
+    upd();
+    const li = e.target.closest && e.target.closest("ol.q li");
+    if (!li || e.target.type !== "radio") return;
+    const next = items.slice(items.indexOf(li) + 1).find(x => !x.querySelector("input:checked"));
+    if (next) setTimeout(() => next.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" }), 180);
+  };
   upd();
 }
 function readForm(root, prefix) {
@@ -775,7 +790,10 @@ function renderGroupBar() {
   const el = $("#group-bar");
   document.body.classList.toggle("landing", !state.group);
   if (!state.group) {
+    // One animal from each group, twice over, as a friendly parade.
+    const parade = ["INFP-A", "ENTJ-A", "ESFJ-A", "ISFP-T", "INTP-T", "ENFJ-A", "ESTP-A", "ISFJ-T"].map(charaSVG).join("");
     el.innerHTML = `<div class="hero">
+      <div class="parade" aria-hidden="true">${parade}</div>
       <p class="hero-q">自分が思う自分と、<br>まわりから見える自分。<br><b>どれくらいズレてる？</b></p>
       <ol class="steps">
         <li><span>1</span><div><b>自分のことを診断</b><small>30問・3分くらい</small></div></li>
