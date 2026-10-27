@@ -416,11 +416,14 @@ function renderResult() {
   else if (mineWithSelf) hint = `<div class="share">
       <p class="share-title">結果をシェアする</p>
       <p class="note">あなたを診断するリンクも一緒に送られるので、受け取った人もそのまま答えられます。</p>
+      <div class="actions"><input type="text" id="share-link" readonly value="${esc(shareLink())}"><button class="btn" id="share-copy">リンクをコピー</button><span class="status" id="share-status"></span></div>
       ${shareButtonsHTML()}
     </div>`;
   el.innerHTML = chips + hint + (empty
     ? comparisonHTML(EXAMPLE_SELF, EXAMPLE_OTHERS, true)
     : comparisonHTML(selfA || null, others, false));
+  // The share card already has the link, so the copy of it at the top would just repeat it.
+  $("#group-bar").hidden = state.view === "result" && !!mineWithSelf && !state.connectError;
   const sc = $("#share-copy");
   if (sc) sc.onclick = () => copyLink($("#share-link"), $("#share-status"));
   if (mineWithSelf) bindShare(score(selfA), others.length ? average(others.map(o => o.pcts)) : null, others.length);
@@ -461,7 +464,7 @@ function shareButtonsHTML() {
       <a class="btn x" id="share-x" href="#" target="_blank" rel="noopener">Xでポスト</a>
       <button class="btn ghost" id="share-image">画像にする（インスタ用）</button>
     </div>
-    <p class="status" id="share-status" role="status"></p>
+    <p class="status" id="line-status" role="status"></p>
     <div id="share-image-box" class="share-image" hidden></div>`;
 }
 function bindShare(selfP, othersP, n) {
@@ -473,7 +476,7 @@ function bindShare(selfP, othersP, n) {
   a.href = "https://line.me/R/share?text=" + encodeURIComponent(lineText);
   a.onclick = async e => {
     e.preventDefault();
-    const st = $("#share-status");
+    const st = $("#line-status");
     if (navigator.share && matchMedia("(pointer: coarse)").matches) {
       try { await navigator.share({ text: lineText }); return; }
       catch (err) { if (err.name === "AbortError") return; }
